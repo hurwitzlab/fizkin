@@ -60,7 +60,7 @@ for SAMPLE_DIR in `find . -maxdepth 1 -type d | sort`; do
             export READ
             i=$((i+1))
             echo `printf "%5d: %s/%s" $i $SAMPLE1 $READ`
-            READ_NAME=`basename $READ | sed "s/\.fa//"` 
+            READ_NAME=`basename $READ ".fa"`
             #echo "READ_NAME ($READ_NAME)"
 
             for INDEX_LIST in `cat $INDEX_FILE`; do

@@ -17,7 +17,7 @@ cd $FASTA_DIR
 #
 # "foo.fa" => "foo"
 #
-OUT_DIR=`/bin/basename $FILE | $SED "s/\.fa.*//"`
+OUT_DIR=`basename $FILE ".fa"`
 
 #
 # Clean out any old runs
@@ -48,7 +48,7 @@ cd $OUT_DIR
 # directory to around 2K
 #
 for FA_FILE in `ls *.fa`; do
-    FA_DIR=`/bin/basename $FA_FILE | $SED "s/\.fa.*//"`
+    FA_DIR=`basename $FA_FILE ".fa"`
 
     if [[ ! -d $FA_DIR ]]; then
         mkdir $FA_DIR

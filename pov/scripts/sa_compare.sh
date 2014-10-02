@@ -11,7 +11,7 @@
 source /usr/share/Modules/init/bash
 
 for TYR in `cat $INDEX_LIST`; do
-    SAMPLE_FASTA_NAME=`basename $TYR | sed "s/\.fa.*//"`
+    SAMPLE_FASTA_NAME=`basename $TYR ".fa"`
     $GT tallymer search -tyr $TYR -strand fp -output qseqnum qpos counts -q $CWD/$READ > $DEST_DIR/$SAMPLE_FASTA_NAME.count
 done
 
