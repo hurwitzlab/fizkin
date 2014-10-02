@@ -2,29 +2,37 @@
 
 source ./config.sh
 
+# [Shiran] If you're not forking a shell, you don't need to export vars into
+# the environment. Unless they're used by qsub
 export JOBS=10
 export CWD="$PWD"
 
-PROG=`basename $0 ".sh"`
-ERR_DIR=$CWD/err/$PROG
-OUT_DIR=$CWD/out/$PROG
+# [Shiran] Any time a path var is being used, it can screw things up royally if
+# there's a space, so each such var should be enclosed by double-quotes.
+PROG=`basename "$0" ".sh"`
+ERR_DIR="$CWD/err/$PROG"
+OUT_DIR="$CWD/out/$PROG"
 
-create_dirs $ERR_DIR $OUT_DIR
+create_dirs "$ERR_DIR" "$OUT_DIR"
 
-cd $FASTA_DIR
+cd "$FASTA_DIR"
 
 #
 # Split each FASTA file
 #
 i=0
-for file in `ls *.fa`; do
+
+# [Shiran] This form also handles file paths with spaces:
+ls *.fa | while read file; do
     i=$((i+1))
 
-    export FILE=`basename $file`
+    # [Shiran] export needed?
+    export FILE=`basename "$file"`
 
-    printf '%03d: %40s' $i $FILE
+    printf '%03d: %40s' $i "$FILE"
 
-    FIRST=`qsub -v BIN_DIR,FILE,FASTA_DIR -N split_fa -e $ERR_DIR/$FILE -o $OUT_DIR/$FILE $SCRIPT_DIR/split_fa.sh`
+    FIRST=`qsub -v BIN_DIR,FILE,FASTA_DIR -N split_fa \
+        "-e $ERR_DIR/$FILE" -o "$OUT_DIR/$FILE" "$SCRIPT_DIR/split_fa.sh"`
 
     echo $FIRST
 done

@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# [Shiran] If you want to allow a user to override these on the command-line,
+# like:
+#    > BASE_DIR=/tmp 01-split-fa.sh
+# you can use this form of Bash variable expansion:
+#
+#    export BASE_DIR=${$BASE_DIR:-/rsgrps2/mbsulli/kyclark/projects/pov}
+
 export BASE_DIR="/rsgrps2/mbsulli/kyclark/projects/pov"
 export FASTA_DIR="$BASE_DIR/data/fasta"
 export SUFFIX_DIR="$BASE_DIR/data/suffix"

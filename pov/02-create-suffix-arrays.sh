@@ -8,20 +8,20 @@ source ./config.sh
 
 export CWD=$PWD
 
-PROG=`basename $0 ".sh"`
-ERR_DIR=$CWD/err/$PROG
-OUT_DIR=$CWD/out/$PROG
+PROG=`basename "$0" ".sh"`
+ERR_DIR="$CWD/err/$PROG"
+OUT_DIR="$CWD/out/$PROG"
 
-create_dirs $ERR_DIR $OUT_DIR
+create_dirs "$ERR_DIR" "$OUT_DIR"
 
-if [[ ! -d $SUFFIX_DIR ]]; then
-    mkdir $SUFFIX_DIR
+if [[ ! -d "$SUFFIX_DIR" ]]; then
+    mkdir "$SUFFIX_DIR"
 fi
 
 cd $FASTA_DIR
 
 i=0
-for DIR in `find . -maxdepth 1 -type d`; do
+find . -maxdepth 1 -type d | while read DIR; do
     if [ "$DIR" = '.' ]; then
         continue
     fi
@@ -33,15 +33,20 @@ for DIR in `find . -maxdepth 1 -type d`; do
         $MKDIR $FINAL_DIR
     fi
 
-    cd $DIR
-    for file in `ls *.fa`; do
+    cd "$DIR"
+    ls *.fa | while read file; do
         i=$((i+1))
         printf "%5d: %s" $i "$DIR/$file -> "
-        export FILE=`basename $file`
-        export FILE_PATH=`readlink -f $FASTA_DIR/$DIR/$IN`
-        qsub -N suffix -e $ERR_DIR/$FILE -o $OUT_DIR/$FILE -v MER_SIZE,FILE,FILE_PATH,FINAL_DIR $SCRIPT_DIR/create_suffix_arrays.sh
+        FILE=`basename $file`
+        FILE_PATH=`readlink -f $FASTA_DIR/$DIR/$IN`
+        qsub -N suffix \
+            -e "$ERR_DIR/$FILE"
+            -o "$OUT_DIR/$FILE"
+            -v MER_SIZE,FILE,FILE_PATH,FINAL_DIR \
+            "$SCRIPT_DIR/create_suffix_arrays.sh"
     done
-    cd $FASTA_DIR
+    cd "$FASTA_DIR"
 done
 
-echo Submitted $i jobs for you.  Have a nice day.
+# Just prettier enclosed in quotes...
+echo "Submitted $i jobs for you.  Have a nice day."
