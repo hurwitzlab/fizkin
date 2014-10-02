@@ -28,9 +28,9 @@ for DIR in `find . -maxdepth 1 -type d`; do
 
     export FINAL_DIR=`readlink -f $SUFFIX_DIR/$DIR`
     if [ -d $FINAL_DIR ]; then
-        $RM -rf $FINAL_DIR/*
+        rm -rf $FINAL_DIR/*
     else
-        $MKDIR $FINAL_DIR
+        mkdir $FINAL_DIR
     fi
 
     cd $DIR

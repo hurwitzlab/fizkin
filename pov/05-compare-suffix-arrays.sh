@@ -51,13 +51,15 @@ for SAMPLE_DIR in `find . -maxdepth 1 -type d | sort`; do
             continue
         fi
 
+        cd $READS_DIR
+
         #
         # Read file names will be sequence IDs, e.g., "GON5MYK01BCZTK.fa"
         #
         for READ in `ls *.fa`; do
             export READ
             i=$((i+1))
-            printf "%5d: %s/%s" $i $SAMPLE1 $READ
+            echo `printf "%5d: %s/%s" $i $SAMPLE1 $READ`
             READ_NAME=`basename $READ | sed "s/\.fa//"` 
             #echo "READ_NAME ($READ_NAME)"
 
@@ -79,7 +81,7 @@ for SAMPLE_DIR in `find . -maxdepth 1 -type d | sort`; do
                 #echo GT $GT
                 #echo READ $READ
 
-                qsub -N sa_compare -e $ERR_DIR/$READ -o $OUT_DIR/$READ -v CWD,GT,INDEX_LIST,READ,DEST_DIR $SCRIPT_DIR/sa_compare.sh
+                qsub -N sa_compare -e $ERR_DIR/$READ_NAME -o $OUT_DIR/$READ_NAME -v CWD,GT,INDEX_LIST,READ,DEST_DIR $SCRIPT_DIR/sa_compare.sh
                 break
             done
 
