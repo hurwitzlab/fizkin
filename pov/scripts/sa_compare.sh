@@ -10,13 +10,27 @@
 
 source /usr/share/Modules/init/bash
 
-for TYR in `cat $INDEX_LIST`; do
-    SAMPLE_FASTA_NAME=`basename $TYR ".fa"`
-    $GT tallymer search -tyr $TYR -strand fp -output qseqnum qpos counts -q $CWD/$READ > $DEST_DIR/$SAMPLE_FASTA_NAME.count
+for INDEX_LIST in `cat $INDEX_FILE`; do
+    SAMPLE2=`basename \`dirname $INDEX_LIST\``
+    DEST_DIR=`readlink -f $COUNT_DIR/$SAMPLE1/$SAMPLE2/$READ_NAME`
+
+    if [[ ! -d $DEST_DIR ]]; then
+        mkdir -p $DEST_DIR
+    fi
+
+    for TYR in `cat $INDEX_LIST`; do
+        SAMPLE_FASTA_NAME=`basename $TYR | sed "s/\.fa.*//"`
+        $GT tallymer search -tyr $TYR -strand fp -output qseqnum qpos counts -q $READ_PATH > $DEST_DIR/$SAMPLE_FASTA_NAME.count
+    done
+
+    #
+    # Removed empty (zero-length) files
+    #
+    find $DEST_DIR -size 0 -exec rm -f {} \;
+
+    #break
 done
 
 #
-# Removed empty (zero-length) files
+# Calculate mode here...
 #
-find $DEST_DIR -size 0 -exec rm -f {} \;
-

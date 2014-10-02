@@ -25,7 +25,7 @@ if [[ ! -e $INDEX_FILE ]]; then
     exit
 fi
 
-echo Processing reads
+echo Processing reads in $FASTA_DIR
 i=0
 cd $FASTA_DIR
 
@@ -40,8 +40,6 @@ for SAMPLE_DIR in `find . -maxdepth 1 -type d | sort`; do
     cd $SAMPLE_DIR
 
     export SAMPLE1=`basename $SAMPLE_DIR`
-    #echo "SAMPLE1 ($SAMPLE1)"
-    #echo "INDEX_FILE ($INDEX_FILE)"
 
     #
     # Read directory names will be "00," "01" from split FASTA files
@@ -57,40 +55,22 @@ for SAMPLE_DIR in `find . -maxdepth 1 -type d | sort`; do
         # Read file names will be sequence IDs, e.g., "GON5MYK01BCZTK.fa"
         #
         for READ in `ls *.fa`; do
-            export READ
+            export READ_NAME=`basename $READ ".fa"`
+            export READ_PATH=`readlink -f $PWD/$READ`
+
+            JOB_ID=`qsub -N sa_compare -e $ERR_DIR/$SAMPLE1-$READ_NAME -o $OUT_DIR/$SAMPLE1-$READ_NAME -v COUNT_DIR,SAMPLE1,GT,INDEX_FILE,READ_NAME,READ_PATH $SCRIPT_DIR/sa_compare.sh`
+
             i=$((i+1))
-            echo `printf "%5d: %s/%s" $i $SAMPLE1 $READ`
-            READ_NAME=`basename $READ ".fa"`
-            #echo "READ_NAME ($READ_NAME)"
-
-            for INDEX_LIST in `cat $INDEX_FILE`; do
-                export INDEX_LIST
-                #echo INDEX_LIST $INDEX_LIST
-                SAMPLE2=`basename \`dirname $INDEX_LIST\``
-                #echo "SAMPLE2 ($SAMPLE2)"
-                export DEST_DIR=`readlink -f $COUNT_DIR/$SAMPLE1/$SAMPLE2/$READ_NAME`
-
-                if [[ ! -d $DEST_DIR ]]; then
-                    mkdir -p $DEST_DIR
-                fi
-
-                export CWD=$PWD
-
-                #echo CWD $CWD
-                #echo DEST_DIR $DEST_DIR
-                #echo GT $GT
-                #echo READ $READ
-
-                qsub -N sa_compare -e $ERR_DIR/$READ_NAME -o $OUT_DIR/$READ_NAME -v CWD,GT,INDEX_LIST,READ,DEST_DIR $SCRIPT_DIR/sa_compare.sh
-                break
-            done
-
-            break
+            printf "%10d: %s %s -> %s" $i $SAMPLE1 $READ_NAME $JOB_ID
+            echo
+            #break
         done
 
         cd ..
-        break
+        #break
     done
 
     break
 done
+
+echo Submitted $i jobs for you.  Namaste.
