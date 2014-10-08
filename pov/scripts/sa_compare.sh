@@ -10,27 +10,32 @@
 
 source /usr/share/Modules/init/bash
 
-for INDEX_LIST in `cat $INDEX_FILE`; do
-    SAMPLE2=`basename \`dirname $INDEX_LIST\``
-    DEST_DIR=`readlink -f $COUNT_DIR/$SAMPLE1/$SAMPLE2/$READ_NAME`
+cd $CWD/$READS_DIR
 
-    if [[ ! -d $DEST_DIR ]]; then
-        mkdir -p $DEST_DIR
-    fi
+#
+# Read file names will be sequence IDs, e.g., "GON5MYK01BCZTK.fa"
+#
+for READ in `ls *.fa`; do
+    READ_NAME=`basename $READ ".fa"`
 
     for TYR in `cat $INDEX_LIST`; do
-        SAMPLE_FASTA_NAME=`basename $TYR | sed "s/\.fa.*//"`
-        $GT tallymer search -tyr $TYR -strand fp -output qseqnum qpos counts -q $READ_PATH > $DEST_DIR/$SAMPLE_FASTA_NAME.count
+        #SAMPLE_FASTA_NAME=`basename $TYR | sed "s/\.fa.*//"`
+
+        #echo "$READ: $TYR"
+
+        $GT tallymer search -tyr $TYR -strand fp -output qseqnum qpos counts -q $READ >> $DEST_DIR/$READ_NAME.count
+
+        #$GT tallymer search -tyr $TYR -strand fp -output qseqnum qpos counts -q $READ >> $DEST_DIR2/$READ_NAME-$TYR.count
+
+        #$GT tallymer search -tyr $TYR -strand fp -output qseqnum qpos counts -q $READ > $DEST_DIR/$SAMPLE_FASTA_NAME.count
     done
 
     #
     # Removed empty (zero-length) files
     #
-    find $DEST_DIR -size 0 -exec rm -f {} \;
+    #find $DEST_DIR -size 0 -exec rm -f {} \;
 
-    #break
+    #
+    # Calculate mode here...
+    #
 done
-
-#
-# Calculate mode here...
-#

@@ -39,6 +39,7 @@ for SAMPLE_DIR in `find . -maxdepth 1 -type d | sort`; do
 
     cd $SAMPLE_DIR
 
+    export CWD=$PWD
     export SAMPLE1=`basename $SAMPLE_DIR`
 
     #
@@ -49,28 +50,56 @@ for SAMPLE_DIR in `find . -maxdepth 1 -type d | sort`; do
             continue
         fi
 
-        cd $READS_DIR
+        DEST_DIR_BASE=$COUNT_DIR/$SAMPLE1/$READS_DIR
 
-        #
-        # Read file names will be sequence IDs, e.g., "GON5MYK01BCZTK.fa"
-        #
-        for READ in `ls *.fa`; do
-            export READ_NAME=`basename $READ ".fa"`
-            export READ_PATH=`readlink -f $PWD/$READ`
+        if [ -d $DEST_DIR_BASE ]; then
+            echo Cleaning out $DEST_DIR_BASE
+            find $DEST_DIR_BASE -type f -name \*.count -exec rm {} \;
+        else 
+            mkdir -p $DEST_DIR_BASE
+        fi
 
-            JOB_ID=`qsub -N sa_compare -e $ERR_DIR/$SAMPLE1-$READ_NAME -o $OUT_DIR/$SAMPLE1-$READ_NAME -v COUNT_DIR,SAMPLE1,GT,INDEX_FILE,READ_NAME,READ_PATH $SCRIPT_DIR/sa_compare.sh`
+        export READS_DIR
 
+        for INDEX_LIST in `cat $INDEX_FILE`; do
             i=$((i+1))
-            printf "%10d: %s %s -> %s" $i $SAMPLE1 $READ_NAME $JOB_ID
-            echo
-            #break
+            printf "%10d: %s %s %s" $i $SAMPLE1 $READ_NAME `basename \`dirname $INDEX_LIST\``
+
+            export SAMPLE2=`basename \`dirname $INDEX_LIST\``
+            export DEST_DIR=$DEST_DIR_BASE/$SAMPLE2
+            export INDEX_LIST
+
+            if [[ ! -d $DEST_DIR ]]; then
+                mkdir $DEST_DIR
+            fi
+
+            qsub -N sa_compare -e $ERR_DIR/$READS_DIR.$i -o $OUT_DIR/$READS_DIR.$i -v DEST_DIR,SAMPLE1,SAMPLE2,GT,INDEX_LIST,CWD,READS_DIR $SCRIPT_DIR/sa_compare.sh
+            #echo
         done
 
-        cd ..
-        #break
+        break
     done
 
     break
 done
 
 echo Submitted $i jobs for you.  Namaste.
+
+        #
+        # Read file names will be sequence IDs, e.g., "GON5MYK01BCZTK.fa"
+        #
+#        cd $READS_DIR
+#        for READ in `ls *.fa`; do
+#            export READ_NAME=`basename $READ ".fa"`
+#            export READ_PATH=`readlink -f $PWD/$READ`
+#
+#            JOB_ID=`qsub -N sa_compare -e $ERR_DIR/$SAMPLE1-$READ_NAME -o $OUT_DIR/$SAMPLE1-$READ_NAME -v COUNT_DIR,SAMPLE1,GT,INDEX_FILE,READ_NAME,READ_PATH $SCRIPT_DIR/sa_compare.sh`
+#
+#            i=$((i+1))
+#            printf "%10d: %s %s -> %s" $i $SAMPLE1 $READ_NAME $JOB_ID
+#            echo
+#            break
+#        done
+#
+#        cd ..
+#        break
