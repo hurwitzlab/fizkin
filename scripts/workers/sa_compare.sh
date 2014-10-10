@@ -10,6 +10,8 @@
 
 source /usr/share/Modules/init/bash
 
+#echo cd $CWD/$READS_DIR
+
 cd $CWD/$READS_DIR
 
 #
@@ -23,19 +25,27 @@ for READ in `ls *.fa`; do
 
         #echo "$READ: $TYR"
 
+        #echo $GT tallymer search -tyr $TYR -strand fp -output qseqnum qpos counts -q $READ $DEST_DIR/$READ_NAME.count
+
         $GT tallymer search -tyr $TYR -strand fp -output qseqnum qpos counts -q $READ >> $DEST_DIR/$READ_NAME.count
 
         #$GT tallymer search -tyr $TYR -strand fp -output qseqnum qpos counts -q $READ >> $DEST_DIR2/$READ_NAME-$TYR.count
 
         #$GT tallymer search -tyr $TYR -strand fp -output qseqnum qpos counts -q $READ > $DEST_DIR/$SAMPLE_FASTA_NAME.count
     done
-
-    #
-    # Removed empty (zero-length) files
-    #
-    #find $DEST_DIR -size 0 -exec rm -f {} \;
-
-    #
-    # Calculate mode here...
-    #
 done
+
+#
+# Removed empty (zero-length) files
+#
+find $DEST_DIR -size 0 -exec rm -f {} \;
+
+SUMMARY=$DEST_DIR/total.count
+if [ -e $SUMMARY ]; then
+    rm $SUMMARY
+fi
+
+#
+# Calculate mode here...
+#
+find $DEST_DIR -name \*.count | xargs $SCRIPT_DIR/calc_mode.pl >> $SUMMARY

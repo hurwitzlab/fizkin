@@ -46,7 +46,7 @@ for SAMPLE_DIR in `find . -maxdepth 1 -type d | sort`; do
     # Read directory names will be "00," "01" from split FASTA files
     #
     for READS_DIR in `find . -maxdepth 1 -type d | sort`; do
-        if [ "$READS_DIR" = '.' ]; then
+        if [ "$READS_DIR" == '.' ]; then
             continue
         fi
 
@@ -62,9 +62,6 @@ for SAMPLE_DIR in `find . -maxdepth 1 -type d | sort`; do
         export READS_DIR
 
         for INDEX_LIST in `cat $INDEX_FILE`; do
-            i=$((i+1))
-            printf "%10d: %s %s %s" $i $SAMPLE1 $READ_NAME `basename \`dirname $INDEX_LIST\``
-
             export SAMPLE2=`basename \`dirname $INDEX_LIST\``
             export DEST_DIR=$DEST_DIR_BASE/$SAMPLE2
             export INDEX_LIST
@@ -73,14 +70,20 @@ for SAMPLE_DIR in `find . -maxdepth 1 -type d | sort`; do
                 mkdir $DEST_DIR
             fi
 
-            qsub -N sa_compare -e $ERR_DIR/$READS_DIR.$i -o $OUT_DIR/$READS_DIR.$i -v DEST_DIR,SAMPLE1,SAMPLE2,GT,INDEX_LIST,CWD,READS_DIR $SCRIPT_DIR/sa_compare.sh
-            #echo
+            i=$((i+1))
+            printf "%10d: %s %s %s" $i $READ_NAME $SAMPLE1 $SAMPLE2
+            echo
+
+            #qsub -N sa_compare -e $ERR_DIR/$READS_DIR.$i -o $OUT_DIR/$READS_DIR.$i -v SCRIPT_DIR,DEST_DIR,SAMPLE1,SAMPLE2,GT,INDEX_LIST,CWD,READS_DIR $SCRIPT_DIR/sa_compare.sh
+            #break
         done
 
-        break
+        #if [ $i -gt 50 ]; then
+        #    break
+        #fi
     done
 
-    break
+    #break
 done
 
 echo Submitted $i jobs for you.  Namaste.

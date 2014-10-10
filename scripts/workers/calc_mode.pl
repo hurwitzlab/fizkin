@@ -4,28 +4,50 @@ use strict;
 use warnings;
 use autodie;
 use feature 'say';
+use File::Basename 'basename';
+use File::Find::Rule;
+use File::Spec::Functions 'canonpath';
 use Getopt::Long;
 use List::MoreUtils 'uniq';
 use Pod::Usage;
 use Readonly;
 use Statistics::Descriptive::Discrete;
 
-my ( $help, $man_page );
+my $in_dir = '';
+my ($help, $man_page);
 GetOptions(
-    'help' => \$help,
-    'man'  => \$man_page,
+    'd|dir:s' => \$in_dir,
+    'help'    => \$help,
+    'man'     => \$man_page,
 ) or pod2usage(2);
 
-if ( $help || $man_page ) {
+if ($help || $man_page) {
     pod2usage({
         -exitval => 0,
         -verbose => $man_page ? 2 : 1
     });
 }; 
 
-my @files = @ARGV or die 'No input files';
+my @files;
+if ($in_dir) {
+    if (-d $in_dir) {
+        @files = File::Find::Rule->file()->in($in_dir);
+    }
+    else {
+        die "Bad directory ($in_dir)";
+    }
+}
+else {
+    @files = @ARGV;
+}
 
-report(mode(parse(@files)));
+for my $file (@files) {
+    my $mode      = mode(parse($file));
+    my $read_name = basename($file, '.count');
+    print join("\t", $mode, $read_name, canonpath($file)), "\n";
+}
+
+exit 0;
 
 # ----------------------------------------------------
 sub report {
@@ -46,6 +68,7 @@ sub mode {
     if (ref $vals eq 'ARRAY' && scalar @$vals > 0) {
         my $stats = Statistics::Descriptive::Discrete->new;
         $stats->add_data(@$vals);
+        return int $stats->mode();
 
         my $mean     = int $stats->mean();
         my $two_stds = 2 * (int $stats->standard_deviation());
@@ -62,37 +85,38 @@ sub mode {
 
 # ----------------------------------------------------
 sub parse {
+    my $file = shift or return;
+
+    return unless $file && -e $file;
+
+    #print STDERR "Parsing input '$file'";
+
+    open my $fh, '<', $file;
     my @vals;
-    for my $file (@_) {
-        next unless $file && -e $file;
-
-        say "Parsing input '$file'";
-
-        open my $fh, '<', $file;
-        while (my $line = <$fh>) {
-            chomp $line;
-            if ($line) {
-                my @data = split /\s+/, $line;
-                if (scalar @data == 3) {
-                    push @vals, $data[-1];
-                }
+    while (my $line = <$fh>) {
+        chomp $line;
+        if ($line) {
+            my @data = split /\s+/, $line;
+            if (scalar @data == 3) {
+                push @vals, $data[-1];
             }
         }
-        close $fh;
     }
+    close $fh;
 
     if (@vals) {
-        my @uniq = uniq(@vals);
-
-        if (scalar @uniq == 1 && $uniq[0] == 1) {
-            die "All ones.";
-        }
+#        my @uniq = uniq(@vals);
+#
+#        if (scalar @uniq == 1 && $uniq[0] == 1) {
+#            printf STDERR "File %s: All ones.\n", basename($file);
+#        }
+        return \@vals;
     }
     else {
-        die 'No usable data in input files';
+        printf STDERR "No usable data in input %s\n", basename($file);
     }
 
-    return \@vals;
+#    return \@vals;
 }
 
 __END__

@@ -3,7 +3,7 @@
 export BASE_DIR="/rsgrps2/mbsulli/kyclark/projects/pov"
 export FASTA_DIR="$BASE_DIR/data/fasta"
 export SUFFIX_DIR="$BASE_DIR/data/suffix"
-export SCRIPT_DIR="$BASE_DIR/scripts"
+export SCRIPT_DIR="$BASE_DIR/scripts/workers"
 export BIN_DIR="$BASE_DIR/bin"
 export COUNT_DIR="$BASE_DIR/data/counts"
 export MER_SIZE=20
