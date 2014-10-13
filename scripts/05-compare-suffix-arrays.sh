@@ -76,10 +76,8 @@ for SAMPLE_DIR in `find . -maxdepth 1 -type d | sort`; do
         i=$((i+1))
         printf "%8d: %s -> %s (%s)" $i $READ_NAME $SAMPLE1 $SAMPLE2 $JOB_ID
         echo
-        break
     done < $INDEX_FILE
 
-    break
     cd ..
 
     if [ $d -eq 2 ]; then

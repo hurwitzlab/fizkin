@@ -33,17 +33,15 @@ for READ in *.fa; do
 
     while read TYR; do
         $GT tallymer search -tyr $TYR -strand fp -output qseqnum qpos counts -q $READ >> $OUT_DIR/$READ_NAME.count
-        break
     done < $INDEX_LIST
-    break
 done
 
 #
 # Removed empty (zero-length) files
 #
-find $DEST_DIR -size 0 -exec rm -f {} \;
+find $OUT_DIR -size 0 -exec rm -f {} \;
 
-SUMMARY=$DEST_DIR/total.count
+SUMMARY=$OUT_DIR/modes.tab
 if [ -e $SUMMARY ]; then
     rm $SUMMARY
 fi
@@ -51,4 +49,4 @@ fi
 #
 # Calculate mode here...
 #
-find $DEST_DIR -name \*.count | xargs $SCRIPT_DIR/calc_mode.pl >> $SUMMARY
+find $OUT_DIR -name \*.count -print0 | xargs -0 $SCRIPT_DIR/calc_mode.pl >> $SUMMARY
