@@ -12,27 +12,30 @@ source /usr/share/Modules/init/bash
 
 #echo cd $CWD/$READS_DIR
 
+#
+# Subtract one 
+#
+READS_DIR=`printf "%02d" $(($PBS_ARRAY_INDEX-1))`
+
 cd $CWD/$READS_DIR
+
+OUT_DIR=$DEST_DIR/$READS_DIR
+
+if [[ ! -d $OUT_DIR ]]; then
+    mkdir $OUT_DIR
+fi
 
 #
 # Read file names will be sequence IDs, e.g., "GON5MYK01BCZTK.fa"
 #
-for READ in `ls *.fa`; do
+for READ in *.fa; do
     READ_NAME=`basename $READ ".fa"`
 
-    for TYR in `cat $INDEX_LIST`; do
-        #SAMPLE_FASTA_NAME=`basename $TYR | sed "s/\.fa.*//"`
-
-        #echo "$READ: $TYR"
-
-        #echo $GT tallymer search -tyr $TYR -strand fp -output qseqnum qpos counts -q $READ $DEST_DIR/$READ_NAME.count
-
-        $GT tallymer search -tyr $TYR -strand fp -output qseqnum qpos counts -q $READ >> $DEST_DIR/$READ_NAME.count
-
-        #$GT tallymer search -tyr $TYR -strand fp -output qseqnum qpos counts -q $READ >> $DEST_DIR2/$READ_NAME-$TYR.count
-
-        #$GT tallymer search -tyr $TYR -strand fp -output qseqnum qpos counts -q $READ > $DEST_DIR/$SAMPLE_FASTA_NAME.count
-    done
+    while read TYR; do
+        $GT tallymer search -tyr $TYR -strand fp -output qseqnum qpos counts -q $READ >> $OUT_DIR/$READ_NAME.count
+        break
+    done < $INDEX_LIST
+    break
 done
 
 #
