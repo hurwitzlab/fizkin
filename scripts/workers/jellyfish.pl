@@ -4,30 +4,46 @@ use strict;
 use warnings;
 use feature 'say';
 use autodie;
-use Data::Dump 'dump';
 use File::Basename 'basename';
 use File::Find::Rule;
 use File::Path 'mkpath';
 use File::Spec::Functions;
+use Getopt::Long 'GetOptions';
 use List::MoreUtils 'uniq';
+use Pod::Usage;
 use Readonly;
 use Statistics::Descriptive::Discrete;
 use Time::HiRes qw(gettimeofday tv_interval);
 use Time::Interval 'parseInterval';
 
-Readonly my $KMER_SIZE  => 20;
-Readonly my $JF         => '/usr/local/bin/jellyfish';
-Readonly my $BASE_DIR   => '/Users/kclark/work/pov';
-Readonly my $SUFFIX_DIR => catdir($BASE_DIR, 'suffix');
-Readonly my $COUNT_DIR  => catdir($BASE_DIR, 'counts');
+my $kmer_size  = 20;
+my $suffix_dir = '';
+my $out_dir    = '';
+my $jellyfish  = '/usr/local/bin/jellyfish';
+my ($help, $man_page);
+GetOptions(
+    's|suffix=s'    => \$suffix_dir,
+    'o|out=s'       => \$out_dir,
+    'k|kmer:i'      => \$kmer_size,
+    'j|jellyfish:s' => \$jellyfish,
+    'help'          => \$help,
+    'man'           => \$man_page,
+) or pod2usage(2);
+
+if ($help || $man_page) {
+    pod2usage({
+        -exitval => 0,
+        -verbose => $man_page ? 2 : 1
+    });
+};
 
 my @files = @ARGV or die "No input FASTA files\n";
-my @suffixes = File::Find::Rule->file()->name('*.jf')->in($SUFFIX_DIR);
+my @suffixes = File::Find::Rule->file()->name('*.jf')->in($suffix_dir);
 printf "Processing %s sequences files against %s suffix files\n", 
     scalar @files, scalar @suffixes;
 
-if (!-d $COUNT_DIR) {
-    mkpath $COUNT_DIR;
+if (!-d $out_dir) {
+    mkpath $out_dir;
 }
 
 my $t0         = [gettimeofday];
@@ -58,7 +74,7 @@ for my $file (@files) {
             my @counts;
             while (my @group = splice(@kmer_copy, 0, 250)) {
                 my $list = join(' ', @group);
-                (my $out = `$JF query $suffix $list`) =~ s/\n$//;
+                (my $out = `$jellyfish query $suffix $list`) =~ s/\n$//;
                 for my $line (split("\n", $out)) {
                     my ($id, $count) = split /\s+/, $line;
                     push @counts, $count if $count > 0;
@@ -68,7 +84,7 @@ for my $file (@files) {
             next unless @counts;
 
             if (my $mode = mode(\@counts)) {
-                my $out_dir = catdir($COUNT_DIR, basename($file, '.fa'));
+                my $out_dir = catdir($out_dir, basename($file, '.fa'));
                 if (!-d $out_dir) {
                     mkpath $out_dir;
                 }
@@ -150,3 +166,50 @@ sub mode {
 }
 
 # ----------------------------------------------------
+
+=pod
+
+=head1 NAME
+
+jellyfish.pl
+
+=head1 SYNOPSIS
+
+  jellyfish.pl -s /path/to/suffixes -o /path/to/output seq.fasta 
+
+  Required Arguments:
+
+    -s|--suffix     Directory of the Jellyfish suffix arrayrs
+    -o|--out        Directory to write the output
+
+  Options:
+
+    -j|--jellyfish  Path to "jellyfish" binary (default "/usr/local/bin")
+    -k|--kmer       Size of the kmers (default "20")
+    --help          Show brief help and exit
+    --man           Show full documentation
+
+=head1 DESCRIPTION
+
+For each FASTA input file, compare to all the Jellyfish indexes in the 
+"suffix" dir and write each sequence/read's mode to the "out" directory.
+
+=head1 SEE ALSO
+
+Jellyfish
+
+=head1 AUTHOR
+
+Ken Youens-Clark E<lt>kclark@cshl.eduE<gt>.
+
+=head1 COPYRIGHT
+
+Copyright (c) 2014 Ken Youens-Clark
+
+This module is free software; you can redistribute it and/or
+modify it under the terms of the GPL (either version 1, or at
+your option, any later version) or the Artistic License 2.0.
+Refer to LICENSE for the full license text and to DISCLAIMER for
+additional warranty disclaimers.
+
+=cut
