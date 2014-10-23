@@ -18,13 +18,12 @@ if [[ ! -d "$JELLYFISH_DIR" ]]; then
     mkdir "$JELLYFISH_DIR"
 fi
 
-echo cd $FULL_FASTA_DIR
 cd "$FULL_FASTA_DIR"
 
 i=0
 for FILE in *.fa; do
     export FILE
-    JOB_ID=`qsub -N jellyfish -e "$ERR_DIR/$FILE" -o "$OUT_DIR/$FILE" -v FULL_FASTA_DIR,MER_SIZE,FILE,JELLYFISH_DIR $SCRIPT_DIR/jellyfish-count.sh`
+    JOB_ID=`qsub -N jellyfish -e "$ERR_DIR/$FILE" -o "$OUT_DIR/$FILE" -v FULL_FASTA_DIR,MER_SIZE,FILE,JELLYFISH,JELLYFISH_DIR $SCRIPT_DIR/jellyfish-count.sh`
 
     i=$((i+1))
     printf "%5d: %s %s" $i $JOB_ID $FILE

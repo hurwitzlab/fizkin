@@ -17,7 +17,7 @@ cd $FASTA_DIR
 # Split each FASTA file
 #
 i=0
-for file in `ls *.fa`; do
+for file in *.fa; do
     i=$((i+1))
 
     export FILE=`basename $file`

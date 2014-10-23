@@ -62,12 +62,13 @@ for my $file (@files) {
         chomp $stanza;
         next unless $stanza;
 
+        $seq_num++;
         my ($header, @lines) = split "\n", $stanza;
         my $seq   = join '', @lines;
-        my @kmers = kmers($seq) or next;
+        my @kmers = kmers($seq, $kmer_size) or next;
 
-        printf "%-70s\r", 
-            sprintf("%10d: %s (%s kmers)", ++$seq_num, $header, scalar @kmers);
+        #printf "%-70s\r", 
+        #    sprintf("%10d: %s (%s kmers)", ++$seq_num, $header, scalar @kmers);
 
         for my $suffix (@suffixes) {
             my @kmer_copy = @kmers;
@@ -104,7 +105,6 @@ for my $file (@files) {
 
     close $fh;
     print "\n";
-    last;
 }
 
 my $seconds = int(tv_interval($t0, [gettimeofday]));
@@ -118,12 +118,13 @@ printf "Done, processed %s sequences in %s files in %s.\n",
 
 # ----------------------------------------------------
 sub kmers {
-    my $seq = shift or return;
-    my $len = length $seq;
+    my $seq       = shift or return;
+    my $kmer_size = shift or return;
+    my $len       = length $seq;
 
     my @kmers;
-    for (my $i = 0; $i + $KMER_SIZE <= $len; $i++) {
-        push @kmers, substr($seq, $i, $KMER_SIZE);
+    for (my $i = 0; $i + $kmer_size <= $len; $i++) {
+        push @kmers, substr($seq, $i, $kmer_size);
     }
 
     return @kmers;
@@ -171,11 +172,11 @@ sub mode {
 
 =head1 NAME
 
-jellyfish.pl
+jellyfish-query.pl
 
 =head1 SYNOPSIS
 
-  jellyfish.pl -s /path/to/suffixes -o /path/to/output seq.fasta 
+  jellyfish-query.pl -s /path/to/suffixes -o /path/to/output seq.fasta 
 
   Required Arguments:
 
@@ -191,8 +192,8 @@ jellyfish.pl
 
 =head1 DESCRIPTION
 
-For each FASTA input file, compare to all the Jellyfish indexes in the 
-"suffix" dir and write each sequence/read's mode to the "out" directory.
+For read in each FASTA input file, run "jellyfish query" to all indexes in 
+the "suffix" dir and write each sequence/read's mode to the "out" directory.
 
 =head1 SEE ALSO
 
