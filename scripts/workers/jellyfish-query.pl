@@ -10,22 +10,28 @@ use File::Path 'mkpath';
 use File::Spec::Functions;
 use Getopt::Long 'GetOptions';
 use List::MoreUtils 'uniq';
+use Number::Format;
 use Pod::Usage;
 use Readonly;
 use Statistics::Descriptive::Discrete;
 use Time::HiRes qw(gettimeofday tv_interval);
 use Time::Interval 'parseInterval';
+use File::Temp 'tempfile';
 
-my $kmer_size  = 20;
-my $suffix_dir = '';
-my $out_dir    = '';
-my $jellyfish  = '/usr/local/bin/jellyfish';
+my $in_file     = '';
+my $kmer_size   = 20;
+my $suffix_file = '';
+my $out_dir     = '';
+my $verbose     = 0;
+my $jellyfish   = '/usr/local/bin/jellyfish';
 my ($help, $man_page);
 GetOptions(
-    's|suffix=s'    => \$suffix_dir,
+    'i|in=s'        => \$in_file,
     'o|out=s'       => \$out_dir,
-    'k|kmer:i'      => \$kmer_size,
     'j|jellyfish:s' => \$jellyfish,
+    'k|kmer:i'      => \$kmer_size,
+    's|suffix=s'    => \$suffix_file,
+    'v|verbose'     => \$verbose,
     'help'          => \$help,
     'man'           => \$man_page,
 ) or pod2usage(2);
@@ -37,75 +43,73 @@ if ($help || $man_page) {
     });
 };
 
-my @files = @ARGV or die "No input FASTA files\n";
-my @suffixes = File::Find::Rule->file()->name('*.jf')->in($suffix_dir);
-printf "Processing %s sequences files against %s suffix files\n", 
-    scalar @files, scalar @suffixes;
-
-if (!-d $out_dir) {
-    mkpath $out_dir;
+unless (-e $in_file && -s _) {
+    pod2usage("Bad input file ($in_file)");
 }
 
-my $t0         = [gettimeofday];
-my $total_seqs = 0;
-my $num_files  = 0;
-for my $file (@files) {
-    $num_files++;
-    printf "Processing %s\n", basename($file);
+unless (-e $suffix_file && -s _) {
+    pod2usage("Bad suffix file ($suffix_file)");
+}
 
-    local $/ = '>';
-    open my $fh, '<', $file;
+unless (-e $jellyfish && -x _) {
+    pod2usage("Bad Jellyfish binary ($jellyfish)");
+}
 
-    my @times;
-    my $seq_num = 0;
-    while (my $stanza = <$fh>) {
-        chomp $stanza;
-        next unless $stanza;
+my ($min_kmer, $max_kmer) = (0, 32);
+unless ($kmer_size > $min_kmer && $kmer_size < $max_kmer) {
+    pod2usage("Kmer size ($kmer_size) must be between $min_kmer and $max_kmer");
+}
 
-        $seq_num++;
-        my ($header, @lines) = split "\n", $stanza;
-        my $seq   = join '', @lines;
-        my @kmers = kmers($seq, $kmer_size) or next;
+my $t0 = [gettimeofday];
 
-        #printf "%-70s\r", 
-        #    sprintf("%10d: %s (%s kmers)", ++$seq_num, $header, scalar @kmers);
+printf STDERR "Processing %s -> %s\n", 
+    basename($in_file), basename($suffix_file);
 
-        for my $suffix (@suffixes) {
-            my @kmer_copy = @kmers;
-            my @counts;
-            while (my @group = splice(@kmer_copy, 0, 250)) {
-                my $list = join(' ', @group);
-                (my $out = `$jellyfish query $suffix $list`) =~ s/\n$//;
-                for my $line (split("\n", $out)) {
-                    my ($id, $count) = split /\s+/, $line;
-                    push @counts, $count if $count > 0;
-                }
-            }
+my $base_dir = catdir($out_dir, basename($in_file, '.fa'));
 
-            next unless @counts;
+if (!-d $base_dir) {
+    mkpath $base_dir;
+}
 
-            if (my $mode = mode(\@counts)) {
-                my $out_dir = catdir($out_dir, basename($file, '.fa'));
-                if (!-d $out_dir) {
-                    mkpath $out_dir;
-                }
+my $out_file = catfile($base_dir, basename($suffix_file, '.jf') . '.mode');
 
-                my $out_file = catfile(
-                    $out_dir, basename($suffix, '.jf') . '.mode'
-                );
-                open my $out, '>>', $out_file;
-                print $out join("\t", $header, $mode), "\n";
+local $/ = '>';
+open my $in,  '<', $in_file;
+open my $out, '>', $out_file;
 
-                close $out;
-            }
-        }
+my $seq_num = 0;
+while (my $stanza = <$in>) {
+    chomp $stanza;
+    next unless $stanza;
+
+    $seq_num++;
+    my ($header, @lines) = split "\n", $stanza;
+
+    if ($verbose) {
+        printf STDERR "%-70s\r", sprintf("%12d: %s", $seq_num, $header);
     }
 
-    $total_seqs += $seq_num;
+    my $seq       = join '', @lines;
+    my $kmer_file = kmers($seq, $kmer_size);
+    my $jf        = `$jellyfish query -s $kmer_file $suffix_file`;
 
-    close $fh;
-    print "\n";
+    my @counts;
+    for my $line (split("\n", $jf)) {
+        my ($id, $count) = split /\s+/, $line;
+        push @counts, $count if $count > 0;
+    }
+
+    if (my $mode = mode(\@counts)) {
+        print $out join("\t", $header, $mode), "\n";
+    }
+
+    unlink $kmer_file;
 }
+
+close $in;
+close $out;
+
+print STDERR "\n" if $verbose;
 
 my $seconds = int(tv_interval($t0, [gettimeofday]));
 my $time    = $seconds > 60
@@ -113,8 +117,12 @@ my $time    = $seconds > 60
     : sprintf("%s second%s", $seconds, $seconds == 1 ? '' : 's')
 ;
 
-printf "Done, processed %s sequences in %s files in %s.\n", 
-    $total_seqs, $num_files, $time;
+my $fmt = Number::Format->new;
+printf STDERR "Done, processed %s sequence%s in %s.\n", 
+    $fmt->format_number($seq_num), 
+    $seq_num == 1 ? '' : 's', 
+    $time;
+exit 0;
 
 # ----------------------------------------------------
 sub kmers {
@@ -122,12 +130,16 @@ sub kmers {
     my $kmer_size = shift or return;
     my $len       = length $seq;
 
-    my @kmers;
+    my @kmers; 
     for (my $i = 0; $i + $kmer_size <= $len; $i++) {
-        push @kmers, substr($seq, $i, $kmer_size);
+        push @kmers, join("\n", ">$i", substr($seq, $i, $kmer_size));
     }
 
-    return @kmers;
+    my ($tmp_fh, $tmp_filename) = tempfile();
+    print $tmp_fh join "\n", @kmers, '';
+    close $tmp_fh;
+
+    return $tmp_filename;
 }
 
 # ----------------------------------------------------
@@ -176,17 +188,19 @@ jellyfish-query.pl
 
 =head1 SYNOPSIS
 
-  jellyfish-query.pl -s /path/to/suffixes -o /path/to/output seq.fasta 
+  jellyfish-query.pl -i input.fasta -s /path/to/suffix -o /path/to/output 
 
   Required Arguments:
 
-    -s|--suffix     Directory of the Jellyfish suffix arrayrs
+    -i|--in         The input file in FASTA format
+    -s|--suffix     The Jellyfish suffix file
     -o|--out        Directory to write the output
 
   Options:
 
     -j|--jellyfish  Path to "jellyfish" binary (default "/usr/local/bin")
     -k|--kmer       Size of the kmers (default "20")
+    -v|--verbose    Show progress while processing sequences
     --help          Show brief help and exit
     --man           Show full documentation
 
