@@ -1,5 +1,7 @@
 #!/usr/bin/env perl
 
+$| = 1;
+
 use strict;
 use warnings;
 use feature 'say';
@@ -78,6 +80,7 @@ open my $in,  '<', $in_file;
 open my $out, '>', $out_file;
 
 my $seq_num = 0;
+my @files;
 while (my $stanza = <$in>) {
     chomp $stanza;
     next unless $stanza;
@@ -98,12 +101,11 @@ while (my $stanza = <$in>) {
         my ($id, $count) = split /\s+/, $line;
         push @counts, $count if $count > 0;
     }
+    unlink $kmer_file;
 
     if (my $mode = mode(\@counts)) {
         print $out join("\t", $header, $mode), "\n";
     }
-
-    unlink $kmer_file;
 }
 
 close $in;
@@ -132,8 +134,11 @@ sub kmers {
 
     my @kmers; 
     for (my $i = 0; $i + $kmer_size <= $len; $i++) {
+        #push @kmers, substr($seq, $i, $kmer_size);
         push @kmers, join("\n", ">$i", substr($seq, $i, $kmer_size));
     }
+
+    #return \@kmers;
 
     my ($tmp_fh, $tmp_filename) = tempfile();
     print $tmp_fh join "\n", @kmers, '';
