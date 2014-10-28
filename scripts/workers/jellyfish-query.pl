@@ -80,7 +80,7 @@ open my $in,  '<', $in_file;
 open my $out, '>', $out_file;
 
 my $seq_num = 0;
-my @files;
+my @tmp_files;
 while (my $stanza = <$in>) {
     chomp $stanza;
     next unless $stanza;
@@ -93,8 +93,12 @@ while (my $stanza = <$in>) {
     }
 
     my $seq       = join '', @lines;
-    my $kmer_file = kmers($seq, $kmer_size);
-    my $jf        = `$jellyfish query -s $kmer_file $suffix_file`;
+    if (my $tmp_file = kmers($seq, $kmer_size);
+        push @tmp_files, $tmp_files;
+    }
+
+    if (scalar @tmp_files == 10) {
+    my $jf = `$jellyfish query -s $kmer_file $suffix_file`;
 
     my @counts;
     for my $line (split("\n", $jf)) {
