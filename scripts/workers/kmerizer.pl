@@ -6,17 +6,18 @@ use strict;
 use warnings;
 use feature 'say';
 use autodie;
-use File::Basename 'basename';
-use Pod::Usage;
+use File::Basename qw(basename fileparse);
+use File::Path;
+use File::Spec::Functions;
 use Getopt::Long;
+use Pod::Usage;
 
-my $in_file     = '';
+my $out_dir;
 my $kmer_size   = 20;
-my $out_dir     = '';
 my $verbose     = 0;
 my ($help, $man_page);
+
 GetOptions(
-    'i|in=s'        => \$in_file,
     'o|out=s'       => \$out_dir,
     'k|kmer:i'      => \$kmer_size,
     'v|verbose'     => \$verbose,
@@ -31,17 +32,33 @@ if ($help || $man_page) {
     });
 }
 
-my $mer = 20;
-my $n   = 0;
+if (!@ARGV) {
+    pod2usage('No input files');
+}
 
+if (!$out_dir) {
+    pod2usage('No output directory');
+}
+
+if (!-d $out_dir) {
+    mkpath $out_dir;
+}
+
+my $file_num = 0;
 for my $file (@ARGV) {
-    print STDERR "$file\n";
+    printf STDERR "%4d: %s\n", ++$file_num, basename($file);
 
-    my $locate = basename($file) . '.kmer_location';
-    open my $locate_fh, '>', $locate;
+    my ($basename)  = fileparse($file, qr/\.[^.]*/);
+    my $kmer_file   = catfile($out_dir, $basename . '.kmers');
+    my $locate_file = catfile($out_dir, $basename . '.loc');
+
+    open my $kmer_fh, '>', $kmer_file;
+    open my $locate_fh, '>', $locate_file;
 
     local $/ = '>';
     open my $fasta_fh, '<', $file;
+
+    my $i = 0;
     while (my $fasta = <$fasta_fh>) {
         chomp $fasta;
         next unless $fasta;
@@ -50,21 +67,24 @@ for my $file (@ARGV) {
         my $seq = join '', @seq;
         my $len = length $seq;
 
-        my $i;
-        for ($i = 0; $i + $mer <= $len; $i++) {
-            print join "\n", '>' . $n++, substr($seq, $i, $mer), '';
+        my $pos;
+        for ($pos = 0; $pos + $kmer_size <= $len; $pos++) {
+            print $kmer_fh 
+                join("\n", '>' . $i++, substr($seq, $pos, $kmer_size), '');
         }
 
-        if ($i > 0) {
-            print $locate_fh join("\t", $header, $i), "\n"; 
+        if ($pos > 0) {
+            print $locate_fh join("\t", $header, $pos), "\n"; 
         }
     }
 
     close $fasta_fh;
+    close $kmer_fh;
     close $locate_fh;
 }
 
-print STDERR "Done.\n";
+printf STDERR "Done, processed %s file%s into %s.\n",
+    $file_num, $file_num == 1 ? '' : 's', canonpath($out_dir);
 
 # ----------------------------------------------------
 
@@ -76,11 +96,10 @@ kmerizer.pl
 
 =head1 SYNOPSIS
 
-  kmerizer.pl -i input.fasta -o /path/to/output 
+  kmerizer.pl -o /path/to/output input.fasta [...]
 
   Required Arguments:
 
-    -i|--in         The input file in FASTA format
     -o|--out        Directory to write the output
 
   Options:
