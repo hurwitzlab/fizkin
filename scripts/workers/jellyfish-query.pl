@@ -6,11 +6,13 @@ use strict;
 use warnings;
 use feature 'say';
 use autodie;
-use File::Basename 'basename';
+use File::Basename qw(basename fileparse);
 use File::Find::Rule;
 use File::Path 'mkpath';
 use File::Spec::Functions;
+use File::Temp 'tempfile';
 use Getopt::Long 'GetOptions';
+use List::Util 'max';
 use List::MoreUtils 'uniq';
 use Number::Format;
 use Pod::Usage;
@@ -18,22 +20,21 @@ use Readonly;
 use Statistics::Descriptive::Discrete;
 use Time::HiRes qw(gettimeofday tv_interval);
 use Time::Interval 'parseInterval';
-use File::Temp 'tempfile';
 
-my $in_file     = '';
 my $kmer_size   = 20;
 my $suffix_file = '';
 my $out_dir     = '';
 my $verbose     = 0;
 my $jellyfish   = '/usr/local/bin/jellyfish';
+my $cut         = '/usr/bin/cut';
 my ($help, $man_page);
 GetOptions(
-    'i|in=s'        => \$in_file,
     'o|out=s'       => \$out_dir,
+    's|suffix=s'    => \$suffix_file,
     'j|jellyfish:s' => \$jellyfish,
     'k|kmer:i'      => \$kmer_size,
-    's|suffix=s'    => \$suffix_file,
     'v|verbose'     => \$verbose,
+    'cut:s'         => \$cut,
     'help'          => \$help,
     'man'           => \$man_page,
 ) or pod2usage(2);
@@ -45,9 +46,7 @@ if ($help || $man_page) {
     });
 };
 
-unless (-e $in_file && -s _) {
-    pod2usage("Bad input file ($in_file)");
-}
+my @files = @ARGV or pod2usage('No input files');
 
 unless (-e $suffix_file && -s _) {
     pod2usage("Bad suffix file ($suffix_file)");
@@ -57,63 +56,70 @@ unless (-e $jellyfish && -x _) {
     pod2usage("Bad Jellyfish binary ($jellyfish)");
 }
 
+if ($out_dir) {
+    (my $suffix_dir = basename($suffix_file)) =~ s/\.[^.]+$//;
+    $out_dir = catdir($out_dir, $suffix_dir);
+}
+else {
+    pod2usage('No output directory');
+}
+
+if (!-d $out_dir) {
+    mkpath $out_dir;
+}
+
 my ($min_kmer, $max_kmer) = (0, 32);
 unless ($kmer_size > $min_kmer && $kmer_size < $max_kmer) {
     pod2usage("Kmer size ($kmer_size) must be between $min_kmer and $max_kmer");
 }
 
-my $t0 = [gettimeofday];
+# ----------------------------------------------------
+#
+# Set up is done, here's the meat
+#
+my $t0       = [gettimeofday];
+my $file_num = 0;
+for my $kmer_file (@files) {
+    my ($basename, $path, $suffix) = fileparse($kmer_file, qr/\.[^.]+/);
+    printf STDERR "%4d: Processing %s\n", ++$file_num, $basename;
 
-printf STDERR "Processing %s -> %s\n", 
-    basename($in_file), basename($suffix_file);
+    my $loc_file = catfile($path, $basename . '.loc');
 
-my $base_dir = catdir($out_dir, basename($in_file, '.fa'));
+    if (!-e $loc_file) {
+        die "Can't find kmer location file ($loc_file)\n";
+    }
 
-if (!-d $base_dir) {
-    mkpath $base_dir;
+    my ($tmp_fh, $tmp_file) = tempfile();
+    close $tmp_fh;
+
+    #
+    # jellyfish query output looks like this
+    # AGCAGGTGGAAGGTGAAGGA 5
+    # 
+    # so split it and take the 2nd field
+    #
+    `jellyfish query -s $kmer_file $suffix_file|$cut -d ' ' -f 2 > $tmp_file`;
+
+    # 
+    # location file tells us read_id and number of kmers, e.g.:
+    # GJFGUPM01AMOBV    163
+    # 
+    open my $jf_fh,  '<', $tmp_file;
+    open my $loc_fh, '<', $loc_file;
+    open my $out_fh, '>', catfile($out_dir, $basename . '.mode');
+
+    while (my $loc = <$loc_fh>) {
+        my ($read_id, $n_kmers) = split /\t/, $loc;
+        if (my $mode = mode(take($n_kmers, $jf_fh))) {
+            print $out_fh join("\t", $read_id, $mode), "\n";
+        }
+    }
+
+    close $loc_fh;
+    close $out_fh;
+    close $jf_fh;
+    unlink $tmp_file;
 }
-
-my $out_file = catfile($base_dir, basename($suffix_file, '.jf') . '.mode');
-
-local $/ = '>';
-open my $in,  '<', $in_file;
-open my $out, '>', $out_file;
-
-my $seq_num = 0;
-my @tmp_files;
-while (my $stanza = <$in>) {
-    chomp $stanza;
-    next unless $stanza;
-
-    $seq_num++;
-    my ($header, @lines) = split "\n", $stanza;
-
-    if ($verbose) {
-        printf STDERR "%-70s\r", sprintf("%12d: %s", $seq_num, $header);
-    }
-
-    my $seq       = join '', @lines;
-    if (my $tmp_file = kmers($seq, $kmer_size);
-        push @tmp_files, $tmp_files;
-    }
-
-    if (scalar @tmp_files == 10) {
-    my $jf = `$jellyfish query -s $kmer_file $suffix_file`;
-
-    my @counts;
-    for my $line (split("\n", $jf)) {
-        my ($id, $count) = split /\s+/, $line;
-        push @counts, $count if $count > 0;
-    }
-    unlink $kmer_file;
-
-    if (my $mode = mode(\@counts)) {
-        print $out join("\t", $header, $mode), "\n";
-    }
-}
-
-close $in;
-close $out;
 
 print STDERR "\n" if $verbose;
 
@@ -124,11 +130,23 @@ my $time    = $seconds > 60
 ;
 
 my $fmt = Number::Format->new;
-printf STDERR "Done, processed %s sequence%s in %s.\n", 
-    $fmt->format_number($seq_num), 
-    $seq_num == 1 ? '' : 's', 
+printf STDERR "Done, queried %s kmer file%s to suffix '%s' %s.\n", 
+    $fmt->format_number($file_num), 
+    $file_num == 1 ? '' : 's', 
+    basename($suffix_file),
     $time;
 exit 0;
+
+# ----------------------------------------------------
+sub take {
+    my ($n, $fh) = @_;
+    my @return;
+    for (my $i = 0; $i < $n; $i++) {
+        chomp(my $line = <$fh>);
+        push @return, $line;
+    }
+    @return;
+}
 
 # ----------------------------------------------------
 sub kmers {
@@ -153,30 +171,28 @@ sub kmers {
 
 # ----------------------------------------------------
 sub mode {
-    my $vals = shift;
-
-    return unless ref $vals eq 'ARRAY' && scalar @$vals > 0;
+    my @vals = @_ or return;
 
     my $mode = 0;
-    if (scalar @$vals == 1) {
-        $mode = $vals->[0];
+    if (scalar @vals == 1) {
+        $mode = shift @vals;
     }
     else {
-        my @distinct = uniq(@$vals);
+        my @distinct = uniq(@vals);
 
         if (scalar @distinct == 1) {
-            $mode = $distinct[0];
+            $mode = shift @distinct;
         }
         else {
             my $stats = Statistics::Descriptive::Discrete->new;
-            $stats->add_data(@$vals);
+            $stats->add_data(@vals);
 
             my $mean     = int($stats->mean());
             my $two_stds = 2 * (int $stats->standard_deviation());
             my $min      = $mean - $two_stds;
             my $max      = $mean + $two_stds;
 
-            if (my @filtered = grep { $_ >= $min && $_ <= $max } @$vals) {
+            if (my @filtered = grep { $_ >= $min && $_ <= $max } @vals) {
                 my $stats2 = Statistics::Descriptive::Discrete->new;
                 $stats2->add_data(@filtered);
                 $mode = int($stats2->mode());
@@ -197,11 +213,10 @@ jellyfish-query.pl
 
 =head1 SYNOPSIS
 
-  jellyfish-query.pl -i input.fasta -s /path/to/suffix -o /path/to/output 
+  jellyfish-query.pl -s /path/to/suffix -o /path/to/output kmer.files ...
 
   Required Arguments:
 
-    -i|--in         The input file in FASTA format
     -s|--suffix     The Jellyfish suffix file
     -o|--out        Directory to write the output
 
