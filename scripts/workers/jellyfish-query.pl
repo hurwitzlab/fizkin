@@ -6,20 +6,16 @@ use strict;
 use warnings;
 use feature 'say';
 use autodie;
-use File::Basename qw(basename fileparse);
+use File::Basename qw'basename fileparse';
 use File::Find::Rule;
 use File::Path 'mkpath';
 use File::Spec::Functions;
 use File::Temp 'tempfile';
 use Getopt::Long 'GetOptions';
-use List::Util 'max';
+use Hurwitz::Utils qw'commify timer_calc take';
 use List::MoreUtils 'uniq';
-use Number::Format;
 use Pod::Usage;
-use Readonly;
 use Statistics::Descriptive::Discrete;
-use Time::HiRes qw(gettimeofday tv_interval);
-use Time::Interval 'parseInterval';
 
 my $kmer_size   = 20;
 my $suffix_file = '';
@@ -77,7 +73,7 @@ unless ($kmer_size > $min_kmer && $kmer_size < $max_kmer) {
 #
 # Set up is done, here's the meat
 #
-my $t0       = [gettimeofday];
+my $timer    = timer_calc();
 my $file_num = 0;
 for my $kmer_file (@files) {
     my ($basename, $path, $suffix) = fileparse($kmer_file, qr/\.[^.]+/);
@@ -123,51 +119,12 @@ for my $kmer_file (@files) {
 
 print STDERR "\n" if $verbose;
 
-my $seconds = int(tv_interval($t0, [gettimeofday]));
-my $time    = $seconds > 60
-    ? parseInterval(seconds => $seconds, Small => 1)
-    : sprintf("%s second%s", $seconds, $seconds == 1 ? '' : 's')
-;
-
-my $fmt = Number::Format->new;
 printf STDERR "Done, queried %s kmer file%s to suffix '%s' %s.\n", 
-    $fmt->format_number($file_num), 
+    commify($file_num), 
     $file_num == 1 ? '' : 's', 
     basename($suffix_file),
-    $time;
+    $timer->();
 exit 0;
-
-# ----------------------------------------------------
-sub take {
-    my ($n, $fh) = @_;
-    my @return;
-    for (my $i = 0; $i < $n; $i++) {
-        chomp(my $line = <$fh>);
-        push @return, $line;
-    }
-    @return;
-}
-
-# ----------------------------------------------------
-sub kmers {
-    my $seq       = shift or return;
-    my $kmer_size = shift or return;
-    my $len       = length $seq;
-
-    my @kmers; 
-    for (my $i = 0; $i + $kmer_size <= $len; $i++) {
-        #push @kmers, substr($seq, $i, $kmer_size);
-        push @kmers, join("\n", ">$i", substr($seq, $i, $kmer_size));
-    }
-
-    #return \@kmers;
-
-    my ($tmp_fh, $tmp_filename) = tempfile();
-    print $tmp_fh join "\n", @kmers, '';
-    close $tmp_fh;
-
-    return $tmp_filename;
-}
 
 # ----------------------------------------------------
 sub mode {
