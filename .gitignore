@@ -22,3 +22,4 @@ nytprof.out
 *.o
 *.bs
 bin/
+.DS_Store
