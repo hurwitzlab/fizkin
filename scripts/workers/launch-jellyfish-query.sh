@@ -10,6 +10,22 @@
 
 source /usr/share/Modules/init/bash
 
-echo $SCRIPT_DIR/jellyfish-query.pl -s "$JELLYFISH_DIR" -o "$COUNT_DIR" -k "$MER_SIZE" -j "$JELLYFISH" $FASTA_FILE
+$SCRIPT_DIR/jellyfish-query.pl -s "$SUFFIX" -o "$COUNT_DIR" -k "$MER_SIZE" -j "$JELLYFISH" $KMER_DIR/*.kmers
 
-$SCRIPT_DIR/jellyfish-query.pl -s "$JELLYFISH_DIR" -o "$COUNT_DIR" -k "$MER_SIZE" -j "$JELLYFISH" $FASTA_FILE
+
+#Usage:
+#      jellyfish-query.pl -s /path/to/suffix -o /path/to/output kmer.files ...
+#
+#      Required Arguments:
+#
+#        -s|--suffix     The Jellyfish suffix file
+#        -o|--out        Directory to write the output
+#
+#      Options:
+#
+#        -j|--jellyfish  Path to "jellyfish" binary (default "/usr/local/bin")
+#        -k|--kmer       Size of the kmers (default "20")
+#        -v|--verbose    Show progress while processing sequences
+#        --help          Show brief help and exit
+#        --man           Show full documentation
+#
