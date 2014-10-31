@@ -105,6 +105,7 @@ for my $kmer_file (@files) {
     open my $out_fh, '>', catfile($out_dir, $basename . '.mode');
 
     while (my $loc = <$loc_fh>) {
+        chomp($loc);
         my ($read_id, $n_kmers) = split /\t/, $loc;
         if (my $mode = mode(take($n_kmers, $jf_fh))) {
             print $out_fh join("\t", $read_id, $mode), "\n";
@@ -119,7 +120,7 @@ for my $kmer_file (@files) {
 
 print STDERR "\n" if $verbose;
 
-printf STDERR "Done, queried %s kmer file%s to suffix '%s' %s.\n", 
+printf STDERR "Done, queried %s kmer file%s to suffix '%s' in %s.\n", 
     commify($file_num), 
     $file_num == 1 ? '' : 's', 
     basename($suffix_file),
@@ -129,6 +130,8 @@ exit 0;
 # ----------------------------------------------------
 sub mode {
     my @vals = @_ or return;
+    printf STDERR "mode got (%s) vals\n", scalar @vals;
+    printf STDERR join(', ', @vals), "\n";
 
     my $mode = 0;
     if (scalar @vals == 1) {
@@ -144,15 +147,19 @@ sub mode {
             my $stats = Statistics::Descriptive::Discrete->new;
             $stats->add_data(@vals);
 
-            my $mean     = int($stats->mean());
-            my $two_stds = 2 * (int $stats->standard_deviation());
-            my $min      = $mean - $two_stds;
-            my $max      = $mean + $two_stds;
+            if (my $mean = int($stats->mean())) {
+                my $two_stds = 2 * (int $stats->standard_deviation());
+                my $min      = $mean - $two_stds;
+                my $max      = $mean + $two_stds;
 
-            if (my @filtered = grep { $_ >= $min && $_ <= $max } @vals) {
-                my $stats2 = Statistics::Descriptive::Discrete->new;
-                $stats2->add_data(@filtered);
-                $mode = int($stats2->mode());
+                if (my @filtered = grep { $_ >= $min && $_ <= $max } @vals) {
+                    my $stats2 = Statistics::Descriptive::Discrete->new;
+                    $stats2->add_data(@filtered);
+                    $mode = int($stats2->mode());
+                }
+            }
+            else {
+                return 0;
             }
         }
     }
