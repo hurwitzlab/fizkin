@@ -22,10 +22,11 @@ echo Processing files in \"$FULL_FASTA_DIR\"
 cd $FULL_FASTA_DIR
 
 i=0
-for FILE in *.*; do
-    export FILE
-    JOB_ID=`qsub -N kmerizer -e "$ERR_DIR/$FILE" -o "$OUT_DIR/$FILE" -v MER_SIZE,FILE,KMER_DIR $SCRIPT_DIR/launch-kmerizer.sh`
+for FASTA in *.*; do
+    export FILE="$FULL_FASTA_DIR/$FASTA"
+
+    JOB_ID=`qsub -N kmerizer -e "$ERR_DIR/$FASTA" -o "$OUT_DIR/$FASTA" -v SCRIPT_DIR,MER_SIZE,FILE,KMER_DIR $SCRIPT_DIR/launch-kmerizer.sh`
     i=$((i+1))
-    printf '%8d: %s' $i $FILE
+    printf '%8d: %s' $i $FASTA
     echo
 done
