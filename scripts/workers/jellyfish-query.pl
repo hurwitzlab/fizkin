@@ -6,6 +6,7 @@ use strict;
 use warnings;
 use feature 'say';
 use autodie;
+use Cwd 'cwd';
 use File::Basename qw'basename fileparse';
 use File::Find::Rule;
 use File::Path 'mkpath';
@@ -22,7 +23,6 @@ my $suffix_file = '';
 my $out_dir     = '';
 my $verbose     = 0;
 my $jellyfish   = '/usr/local/bin/jellyfish';
-my $cut         = '/usr/bin/cut';
 my ($help, $man_page);
 GetOptions(
     'o|out=s'       => \$out_dir,
@@ -30,7 +30,6 @@ GetOptions(
     'j|jellyfish:s' => \$jellyfish,
     'k|kmer:i'      => \$kmer_size,
     'v|verbose'     => \$verbose,
-    'cut:s'         => \$cut,
     'help'          => \$help,
     'man'           => \$man_page,
 ) or pod2usage(2);
@@ -77,7 +76,7 @@ my $timer    = timer_calc();
 my $file_num = 0;
 for my $kmer_file (@files) {
     my ($basename, $path, $suffix) = fileparse($kmer_file, qr/\.[^.]+/);
-    printf STDERR "%4d: Processing %s\n", ++$file_num, $basename;
+    printf STDERR "%4d: Processing kmer file '%s'\n", ++$file_num, $basename;
 
     my $loc_file = catfile($path, $basename . '.loc');
 
@@ -85,7 +84,7 @@ for my $kmer_file (@files) {
         die "Can't find kmer location file ($loc_file)\n";
     }
 
-    my ($tmp_fh, $tmp_file) = tempfile();
+    my ($tmp_fh, $tmp_file) = tempfile(DIR => cwd());
     close $tmp_fh;
 
     #
@@ -94,7 +93,7 @@ for my $kmer_file (@files) {
     # 
     # so split it and take the 2nd field
     #
-    `jellyfish query -s $kmer_file $suffix_file|$cut -d ' ' -f 2 > $tmp_file`;
+    `$jellyfish query -s $kmer_file -o $tmp_file $suffix_file`;
 
     # 
     # location file tells us read_id and number of kmers, e.g.:
@@ -107,7 +106,7 @@ for my $kmer_file (@files) {
     while (my $loc = <$loc_fh>) {
         chomp($loc);
         my ($read_id, $n_kmers) = split /\t/, $loc;
-        if (my $mode = mode(take($n_kmers, $jf_fh))) {
+        if (my $mode = mode( map { [split]->[1] } take($n_kmers, $jf_fh))) {
             print $out_fh join("\t", $read_id, $mode), "\n";
         }
     }
@@ -130,10 +129,8 @@ exit 0;
 # ----------------------------------------------------
 sub mode {
     my @vals = @_ or return;
-    printf STDERR "mode got (%s) vals\n", scalar @vals;
-    printf STDERR join(', ', @vals), "\n";
-
     my $mode = 0;
+
     if (scalar @vals == 1) {
         $mode = shift @vals;
     }
