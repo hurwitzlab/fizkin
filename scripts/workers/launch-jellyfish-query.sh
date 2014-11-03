@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #PBS -W group_list=bhurwitz
-#PBS -q windfall
+#PBS -q standard
 #PBS -l jobtype=serial
 #PBS -l select=1:ncpus=12:mem=10gb
 #PBS -l place=pack:shared
@@ -11,7 +11,6 @@
 source /usr/share/Modules/init/bash
 
 $SCRIPT_DIR/jellyfish-query.pl -s "$SUFFIX" -o "$COUNT_DIR" -k "$MER_SIZE" -j "$JELLYFISH" $KMER_DIR/*.kmers
-
 
 #Usage:
 #      jellyfish-query.pl -s /path/to/suffix -o /path/to/output kmer.files ...
