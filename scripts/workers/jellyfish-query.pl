@@ -23,6 +23,7 @@ my $suffix_file = '';
 my $out_dir     = '';
 my $verbose     = 0;
 my $jellyfish   = '/usr/local/bin/jellyfish';
+my $tmp_dir     = cwd();
 my ($help, $man_page);
 GetOptions(
     'o|out=s'       => \$out_dir,
@@ -30,6 +31,7 @@ GetOptions(
     'j|jellyfish:s' => \$jellyfish,
     'k|kmer:i'      => \$kmer_size,
     'v|verbose'     => \$verbose,
+    't|tmp_dir:s'   => \$tmp_dir,
     'help'          => \$help,
     'man'           => \$man_page,
 ) or pod2usage(2);
@@ -84,7 +86,7 @@ for my $kmer_file (@files) {
         die "Can't find kmer location file ($loc_file)\n";
     }
 
-    my ($tmp_fh, $tmp_file) = tempfile(DIR => cwd());
+    my ($tmp_fh, $tmp_file) = tempfile(DIR => $tmp_dir);
     close $tmp_fh;
 
     #
@@ -93,7 +95,11 @@ for my $kmer_file (@files) {
     # 
     # so split it and take the 2nd field
     #
-    `$jellyfish query -s $kmer_file -o $tmp_file $suffix_file`;
+    system(
+        $jellyfish, "query", "-s", "$kmer_file", 
+        "-o", "$tmp_file", "$suffix_file"
+    ) == 0 
+        or die "Couldn't $jellyfish failed: $?";
 
     # 
     # location file tells us read_id and number of kmers, e.g.:
@@ -106,7 +112,14 @@ for my $kmer_file (@files) {
     while (my $loc = <$loc_fh>) {
         chomp($loc);
         my ($read_id, $n_kmers) = split /\t/, $loc;
-        if (my $mode = mode( map { [split]->[1] } take($n_kmers, $jf_fh))) {
+
+        my @counts;
+        for my $val (take($n_kmers, $jf_fh)) {
+            my ($kmer, $count) = split /\s+/, $val;
+            push @counts, $count if defined $count && $count =~ /^\d+$/;
+        }
+
+        if (my $mode = mode(@counts)) {
             print $out_fh join("\t", $read_id, $mode), "\n";
         }
     }
@@ -186,6 +199,7 @@ jellyfish-query.pl
     -j|--jellyfish  Path to "jellyfish" binary (default "/usr/local/bin")
     -k|--kmer       Size of the kmers (default "20")
     -v|--verbose    Show progress while processing sequences
+    -t|--tmp_dir    Directory to write temp file (default cwd)
     --help          Show brief help and exit
     --man           Show full documentation
 
