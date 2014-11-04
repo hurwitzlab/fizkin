@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #PBS -W group_list=bhurwitz
-#PBS -q windfall
+#PBS -q standard
 #PBS -l jobtype=serial
 #PBS -l select=1:ncpus=12:mem=10gb
 #PBS -l place=pack:shared
