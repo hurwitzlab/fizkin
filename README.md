@@ -1,4 +1,4 @@
-# Pacific Ocean Virome
+# Tara Oceans
 
 * "scripts/workers" - driver/worker scripts
 * "bin" - necessary compiled tools, e.g., "faSplit"
