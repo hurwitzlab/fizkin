@@ -115,6 +115,7 @@ for my $kmer_file (@files) {
 
         my @counts;
         for my $val (take($n_kmers, $jf_fh)) {
+            next if !$val;
             my ($kmer, $count) = split /\s+/, $val;
             push @counts, $count if defined $count && $count =~ /^\d+$/;
         }
