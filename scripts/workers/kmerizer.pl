@@ -6,13 +6,14 @@ use strict;
 use warnings;
 use feature 'say';
 use autodie;
+use Cwd 'cwd';
 use File::Basename qw(basename fileparse);
 use File::Path;
 use File::Spec::Functions;
 use Getopt::Long;
 use Pod::Usage;
 
-my $out_dir;
+my $out_dir     = cwd();;
 my $kmer_size   = 20;
 my $verbose     = 0;
 my ($help, $man_page);
@@ -34,10 +35,6 @@ if ($help || $man_page) {
 
 if (!@ARGV) {
     pod2usage('No input files');
-}
-
-if (!$out_dir) {
-    pod2usage('No output directory');
 }
 
 if (!-d $out_dir) {
