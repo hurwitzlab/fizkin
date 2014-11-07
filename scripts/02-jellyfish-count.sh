@@ -18,16 +18,19 @@ if [[ ! -d "$JELLYFISH_DIR" ]]; then
     mkdir "$JELLYFISH_DIR"
 fi
 
-cd "$FULL_FASTA_DIR"
+cd "$FASTA_DIR"
+COUNT=`find -maxdepth 1 -type f -name \*.fa | wc -l`
+echo Found $COUNT files in \"$FASTA_DIR\"
 
 i=0
-for FILE in *.fa; do
-    export FILE
-    JOB_ID=`qsub -N jellyfish -e "$ERR_DIR/$FILE" -o "$OUT_DIR/$FILE" -v FULL_FASTA_DIR,MER_SIZE,FILE,JELLYFISH,JELLYFISH_DIR $SCRIPT_DIR/jellyfish-count.sh`
-
+for FASTA in *.fa; do
     i=$((i+1))
-    printf "%5d: %s %s" $i $JOB_ID $FILE
-    echo
+
+    export FILE=`readlink -f $FASTA`
+
+    JOB_ID=`qsub -N jellyfish -e "$ERR_DIR/$FASTA" -o "$OUT_DIR/$FASTA" -v FASTA_DIR,MER_SIZE,FILE,JELLYFISH,JELLYFISH_DIR $SCRIPT_DIR/jellyfish-count.sh`
+
+    printf "%5d: %s %s\n" $i $JOB_ID $FASTA
 done
 
 echo Submitted $i jobs for you.  Have a nice day.
