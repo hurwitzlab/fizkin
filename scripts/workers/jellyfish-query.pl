@@ -18,22 +18,22 @@ use List::MoreUtils 'uniq';
 use Pod::Usage;
 use Statistics::Descriptive::Discrete;
 
-my $kmer_size   = 20;
-my $suffix_file = '';
-my $out_dir     = '';
-my $verbose     = 0;
-my $jellyfish   = '/usr/local/bin/jellyfish';
-my $tmp_dir     = cwd();
+my $kmer_size  = 20;
+my $suffix_dir = '';
+my $out_dir    = '';
+my $verbose    = 0;
+my $jellyfish  = '/usr/local/bin/jellyfish';
+my $tmp_dir    = cwd();
 my ($help, $man_page);
 GetOptions(
-    'o|out=s'       => \$out_dir,
-    's|suffix=s'    => \$suffix_file,
-    'j|jellyfish:s' => \$jellyfish,
-    'k|kmer:i'      => \$kmer_size,
-    'v|verbose'     => \$verbose,
-    't|tmp_dir:s'   => \$tmp_dir,
-    'help'          => \$help,
-    'man'           => \$man_page,
+    'o|out=s'        => \$out_dir,
+    's|suffix_dir=s' => \$suffix_dir,
+    'j|jellyfish:s'  => \$jellyfish,
+    'k|kmer:i'       => \$kmer_size,
+    'v|verbose'      => \$verbose,
+    't|tmp_dir:s'    => \$tmp_dir,
+    'help'           => \$help,
+    'man'            => \$man_page,
 ) or pod2usage(2);
 
 if ($help || $man_page) {
@@ -45,8 +45,8 @@ if ($help || $man_page) {
 
 my @files = @ARGV or pod2usage('No input files');
 
-unless (-e $suffix_file && -s _) {
-    pod2usage("Bad suffix file ($suffix_file)");
+if (!-d $suffix_dir) {
+    pod2usage("Bad suffix dir ($suffix_dir)");
 }
 
 unless (-e $jellyfish && -x _) {
@@ -54,8 +54,7 @@ unless (-e $jellyfish && -x _) {
 }
 
 if ($out_dir) {
-    (my $suffix_dir = basename($suffix_file)) =~ s/\.[^.]+$//;
-    $out_dir = catdir($out_dir, $suffix_dir);
+    $out_dir = catdir($out_dir, basename($suffix_dir));
 }
 else {
     pod2usage('No output directory');

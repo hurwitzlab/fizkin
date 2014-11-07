@@ -17,14 +17,14 @@ if [[ ! -d "$COUNT_DIR" ]]; then
     mkdir "$COUNT_DIR"
 fi
 
-echo Processing suffixes in \"$JELLYFISH_DIR\"
-cd $JELLYFISH_DIR
+echo Processing FASTA in \"$FASTA_DIR\"
+cd $FASTA_DIR
 
 i=0
-for FILE in *.jf; do
-    export SUFFIX="$JELLYFISH_DIR/$FILE"
+for FILE in *.fa; do
+    export FASTA="$FASTA_DIR/$FILE"
 
-    JOB_ID=`qsub -N "query" -e "$ERR_DIR/$FILE" -o "$OUT_DIR/$FILE" -v SCRIPT_DIR,SUFFIX,COUNT_DIR,MER_SIZE,JELLYFISH,KMER_DIR $SCRIPT_DIR/launch-jellyfish-query.sh`
+    JOB_ID=`qsub -N "query" -e "$ERR_DIR/$FILE" -o "$OUT_DIR/$FILE" -v SCRIPT_DIR,SUFFIX_DIR,COUNT_DIR,FASTA,MER_SIZE,JELLYFISH $SCRIPT_DIR/launch-jellyfish-query.sh`
 
     i=$((i+1))
     printf "%8d: %s %s\n" $i $JOB_ID $FILE 
