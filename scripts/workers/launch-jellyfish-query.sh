@@ -11,10 +11,14 @@
 
 source /usr/share/Modules/init/bash
 
+# SCRIPT_DIR,SUFFIX_DIR,FASTA,MER_SIZE,JELLYFISH 
+
 cd $TMPDIR
 
-$SCRIPT_DIR/jellyfish-query.pl -s "$SUFFIX" -o "$COUNT_DIR" -k "$MER_SIZE" \
-  -j "$JELLYFISH" $KMER_DIR/*.kmers
+$SCRIPT_DIR/kmerizer.pl -k "$MER_SIZE" $FASTA
+
+$SCRIPT_DIR/jellyfish-query.pl -s "$SUFFIX_DIR" -o "$COUNT_DIR" -k "$MER_SIZE" \
+  -j "$JELLYFISH" *.kmers
 
 #Usage:
 #      jellyfish-query.pl -s /path/to/suffix -o /path/to/output kmer.files ...
