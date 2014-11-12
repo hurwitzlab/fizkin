@@ -3,7 +3,7 @@
 #PBS -W group_list=bhurwitz
 #PBS -q standard
 #PBS -l jobtype=serial
-#PBS -l select=1:ncpus=1:mem=2gb:localscratch=1
+#PBS -l select=1:ncpus=1:mem=2gb
 #PBS -l place=pack:shared
 #PBS -l walltime=24:00:00
 #PBS -l cput=24:00:00
@@ -11,14 +11,21 @@
 
 source /usr/share/Modules/init/bash
 
-# SCRIPT_DIR,SUFFIX_DIR,FASTA,MER_SIZE,JELLYFISH 
+# SCRIPT_DIR,SUFFIX_DIR,FASTA,MER_SIZE,JELLYFISH,KMER_DIR
 
-cd $TMPDIR
+date
 
-$SCRIPT_DIR/kmerizer.pl -k "$MER_SIZE" $FASTA
+$SCRIPT_DIR/kmerizer.pl -k "$MER_SIZE" -o "$KMER_DIR" $FASTA
 
-$SCRIPT_DIR/jellyfish-query.pl -s "$SUFFIX_DIR" -o "$COUNT_DIR" -k "$MER_SIZE" \
-  -j "$JELLYFISH" *.kmers
+echo 
+date
+
+$SCRIPT_DIR/jellyfish-query.pl -s "$JELLYFISH_DIR" -o "$COUNT_DIR" \
+  -k "$MER_SIZE" -j "$JELLYFISH" $FASTA
+
+echo
+echo Finished
+date
 
 #Usage:
 #      jellyfish-query.pl -s /path/to/suffix -o /path/to/output kmer.files ...

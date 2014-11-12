@@ -1,15 +1,15 @@
 #!/bin/bash
 
-export BASE_DIR="/rsgrps/bhurwitz/kyclark/projects/tara"
-export FASTA_DIR="$BASE_DIR/data/fasta"
-export SUFFIX_DIR="$BASE_DIR/data/suffix"
-export KMER_DIR="$BASE_DIR/data/kmer"
-export JELLYFISH_DIR="$BASE_DIR/data/jellyfish"
+DATA_DIR="/rsgrps/bhurwitz/hurwitzlab/data/clean/tara"
+export FASTA_DIR="$DATA_DIR/fasta"
+export JELLYFISH_DIR="$DATA_DIR/jellyfish"
+export BASE_DIR="/rsgrps/bhurwitz/kyclark/tara"
 export SCRIPT_DIR="$BASE_DIR/scripts/workers"
 export COUNT_DIR="$BASE_DIR/data/counts"
-export MER_SIZE=20
-export BIN_DIR="/rsgrps/bhurwitz/bin"
+export KMER_DIR="$BASE_DIR/data/kmers"
+export BIN_DIR="/rsgrps/bhurwitz/hurwitzlab/bin"
 export JELLYFISH="$BIN_DIR/jellyfish"
+export MER_SIZE=20
 
 function create_dirs {
     for dir in $1 $2; do
