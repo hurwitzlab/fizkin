@@ -11,17 +11,21 @@
 
 source /usr/share/Modules/init/bash
 
-# SCRIPT_DIR,SUFFIX_DIR,FASTA,MER_SIZE,JELLYFISH,KMER_DIR
+# SCRIPT_DIR, JELLYFISH_DIR, COUNT_DIR, KMER_DIR, FASTA, MER_SIZE, JELLYFISH
 
 date
-
+echo $SCRIPT_DIR/kmerizer.pl -k "$MER_SIZE" -o "$KMER_DIR" $FASTA
 $SCRIPT_DIR/kmerizer.pl -k "$MER_SIZE" -o "$KMER_DIR" $FASTA
 
 echo 
 date
+BASENAME=`basename $FASTA`
+
+echo $SCRIPT_DIR/jellyfish-query.pl -v -s "$JELLYFISH_DIR" -o "$COUNT_DIR" \
+  -k "$MER_SIZE" -j "$JELLYFISH" "$KMER_DIR/${BASENAME}.kmers"
 
 $SCRIPT_DIR/jellyfish-query.pl -s "$JELLYFISH_DIR" -o "$COUNT_DIR" \
-  -k "$MER_SIZE" -j "$JELLYFISH" $FASTA
+  -k "$MER_SIZE" -j "$JELLYFISH" -q "$KMER_DIR/${BASENAME}.kmers"
 
 echo
 echo Finished
