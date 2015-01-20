@@ -43,11 +43,11 @@ if (!-d $out_dir) {
 
 my $file_num = 0;
 for my $file (@ARGV) {
-    printf STDERR "%4d: %s\n", ++$file_num, basename($file);
-
-    my ($basename)  = fileparse($file, qr/\.[^.]*/);
+    my $basename    = basename($file);
     my $kmer_file   = catfile($out_dir, $basename . '.kmers');
     my $locate_file = catfile($out_dir, $basename . '.loc');
+
+    printf STDERR "%4d: %s\n", ++$file_num, $basename;
 
     open my $kmer_fh, '>', $kmer_file;
     open my $locate_fh, '>', $locate_file;
