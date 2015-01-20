@@ -11,135 +11,168 @@ use File::Basename qw'basename fileparse';
 use File::Find::Rule;
 use File::Path 'mkpath';
 use File::Spec::Functions;
+use File::Find::Rule;
 use File::Temp 'tempfile';
 use Getopt::Long 'GetOptions';
 use Hurwitz::Utils qw'commify timer_calc take';
 use List::MoreUtils 'uniq';
 use Pod::Usage;
 use Statistics::Descriptive::Discrete;
+use Readonly;
 
-my $kmer_size  = 20;
-my $suffix_dir = '';
-my $out_dir    = '';
-my $verbose    = 0;
-my $jellyfish  = '/usr/local/bin/jellyfish';
-my $tmp_dir    = cwd();
-my ($help, $man_page);
-GetOptions(
-    'o|out=s'        => \$out_dir,
-    's|suffix_dir=s' => \$suffix_dir,
-    'j|jellyfish:s'  => \$jellyfish,
-    'k|kmer:i'       => \$kmer_size,
-    'v|verbose'      => \$verbose,
-    't|tmp_dir:s'    => \$tmp_dir,
-    'help'           => \$help,
-    'man'            => \$man_page,
-) or pod2usage(2);
+Readonly my $MIN_KMER =>  0;
+Readonly my $MAX_KMER => 32;
+Readonly my %DEFAULT => (
+    kmer_size => 20,
+    jellyfish => '/usr/local/bin/jellyfish',
+    verbose   => 1,
+);
 
-if ($help || $man_page) {
-    pod2usage({
-        -exitval => 0,
-        -verbose => $man_page ? 2 : 1
-    });
-};
+main();
 
-my @files = @ARGV or pod2usage('No input files');
+# --------------------------------------------------
+sub main {
+    my $kmer_size  = $DEFAULT{'kmer_size'};
+    my $jellyfish  = $DEFAULT{'jellyfish'};
+    my $verbose    = $DEFAULT{'verbose'};
+    my $suffix_dir = '';
+    my $out_dir    = '';
+    my $query_file = '';
+    my ($help, $man_page);
+    GetOptions(
+        'q|query=s'      => \$query_file,
+        'o|out=s'        => \$out_dir,
+        's|suffix_dir=s' => \$suffix_dir,
+        'j|jellyfish:s'  => \$jellyfish,
+        'k|kmer:i'       => \$kmer_size,
+        'v|verbose'      => \$verbose,
+        'help'           => \$help,
+        'man'            => \$man_page,
+    ) or pod2usage(2);
 
-if (!-d $suffix_dir) {
-    pod2usage("Bad suffix dir ($suffix_dir)");
-}
+    if ($help || $man_page) {
+        pod2usage({
+            -exitval => 0,
+            -verbose => $man_page ? 2 : 1
+        });
+    };
 
-unless (-e $jellyfish && -x _) {
-    pod2usage("Bad Jellyfish binary ($jellyfish)");
-}
+    unless ($query_file && -e $query_file) {
+        pod2usage('Missing or bad query file');
+    }
 
-if ($out_dir) {
-    $out_dir = catdir($out_dir, basename($suffix_dir));
-}
-else {
-    pod2usage('No output directory');
-}
+    if (!-d $suffix_dir) {
+        pod2usage("Bad suffix dir ($suffix_dir)");
+    }
 
-if (!-d $out_dir) {
-    mkpath $out_dir;
-}
+    my @suffix_files = File::Find::Rule->file()->name('*.jf')->in($suffix_dir)
+        or pod2usage("No Jellyfish (.jf) files in suffix dir '$suffix_dir'");
 
-my ($min_kmer, $max_kmer) = (0, 32);
-unless ($kmer_size > $min_kmer && $kmer_size < $max_kmer) {
-    pod2usage("Kmer size ($kmer_size) must be between $min_kmer and $max_kmer");
-}
+    unless (-e $jellyfish && -x _) {
+        pod2usage("Bad Jellyfish binary ($jellyfish)");
+    }
 
-# ----------------------------------------------------
-#
-# Set up is done, here's the meat
-#
-my $timer    = timer_calc();
-my $file_num = 0;
-for my $kmer_file (@files) {
-    my ($basename, $path, $suffix) = fileparse($kmer_file, qr/\.[^.]+/);
-    printf STDERR "%4d: Processing kmer file '%s'\n", ++$file_num, $basename;
+    if ($out_dir) {
+        $out_dir = catdir($out_dir, basename($suffix_dir));
+    }
+    else {
+        pod2usage('No output directory');
+    }
 
+    if (!-d $out_dir) {
+        mkpath $out_dir;
+    }
+
+    unless ($kmer_size > $MIN_KMER && $kmer_size < $MAX_KMER) {
+        pod2usage(sprintf(
+            "Kmer size (%s) must be between %s and %s",
+            $kmer_size, $MIN_KMER, $MAX_KMER
+        ));
+    }
+
+    my $report = sub { say @_ if $verbose };
+
+    # ----------------------------------------------------
+    #
+    # Set up is done, here's the meat
+    #
+    my ($basename, $path, $suffix) = fileparse($query_file, qr/\.[^.]+/);
     my $loc_file = catfile($path, $basename . '.loc');
 
     if (!-e $loc_file) {
-        die "Can't find kmer location file ($loc_file)\n";
+        die "Can't find expected kmer location file ($loc_file)\n";
     }
 
-    my ($tmp_fh, $tmp_file) = tempfile(DIR => $tmp_dir);
-    close $tmp_fh;
+    $report->("Processing query file '$basename'");
 
-    #
-    # jellyfish query output looks like this
-    # AGCAGGTGGAAGGTGAAGGA 5
-    # 
-    # so split it and take the 2nd field
-    #
-    system(
-        $jellyfish, "query", "-s", "$kmer_file", 
-        "-o", "$tmp_file", "$suffix_file"
-    ) == 0 
-        or die "Couldn't $jellyfish failed: $?";
+    my $timer    = timer_calc();
+    my $file_num = 0;
 
-    # 
-    # location file tells us read_id and number of kmers, e.g.:
-    # GJFGUPM01AMOBV    163
-    # 
-    open my $jf_fh,  '<', $tmp_file;
-    open my $loc_fh, '<', $loc_file;
-    open my $out_fh, '>', catfile($out_dir, $basename . '.mode');
+    SUFFIX:
+    for my $suffix_file (@suffix_files) {
+        $report->(sprintf "%4d: Processing suffix '%s'\n", 
+            ++$file_num, basename($suffix_file)
+        );
 
-    while (my $loc = <$loc_fh>) {
-        chomp($loc);
-        my ($read_id, $n_kmers) = split /\t/, $loc;
+        my ($tmp_fh, $tmp_file) = tempfile(DIR => $out_dir);
+        close $tmp_fh;
 
-        my @counts;
-        for my $val (take($n_kmers, $jf_fh)) {
-            next if !$val;
-            my ($kmer, $count) = split /\s+/, $val;
-            push @counts, $count if defined $count && $count =~ /^\d+$/;
+        my $result = system(
+            $jellyfish, 'query', '-s', $query_file, 
+            '-o', $tmp_file, $suffix_file
+        );
+
+        if ($result != 0) {
+            unlink $tmp_file;
+            print STDERR "jellyfish query of $suffix_file failed: ", $?;
+            next SUFFIX;
         }
 
-        if (my $mode = mode(@counts)) {
-            print $out_fh join("\t", $read_id, $mode), "\n";
+        #
+        # jellyfish query output looks like this
+        # AGCAGGTGGAAGGTGAAGGA 5
+        # 
+        # location file tells us read_id and number of kmers, e.g.:
+        # GJFGUPM01AMOBV    163
+        # 
+        open my $jf_fh,  '<', $tmp_file;
+        open my $loc_fh, '<', $loc_file;
+        open my $out_fh, '>', catfile($out_dir, $basename . '.mode');
+
+        while (my $loc = <$loc_fh>) {
+            chomp($loc);
+            my ($read_id, $n_kmers) = split /\t/, $loc;
+
+            my @counts;
+            for my $val (take($n_kmers, $jf_fh)) {
+                next if !$val;
+                my ($kmer_seq, $count) = split /\s+/, $val;
+                push @counts, $count if defined $count && $count =~ /^\d+$/;
+            }
+
+            if (my $mode = mode(@counts)) {
+                print $out_fh join("\t", $read_id, $mode), "\n";
+            }
         }
+
+        close $loc_fh;
+        close $out_fh;
+        close $jf_fh;
+        unlink $tmp_file;
     }
 
-    close $loc_fh;
-    close $out_fh;
-    close $jf_fh;
-    unlink $tmp_file;
+    print STDERR "\n" if $verbose;
+
+    printf STDERR "Done, queried %s kmer file%s to %s suffix file%s in %s.\n", 
+        commify($file_num), 
+        $file_num == 1 ? '' : 's', 
+        scalar @suffix_files,
+        scalar @suffix_files == 1 ? '' : 's',
+        $timer->();
+    exit 0;
 }
 
-print STDERR "\n" if $verbose;
-
-printf STDERR "Done, queried %s kmer file%s to suffix '%s' in %s.\n", 
-    commify($file_num), 
-    $file_num == 1 ? '' : 's', 
-    basename($suffix_file),
-    $timer->();
-exit 0;
-
-# ----------------------------------------------------
+# --------------------------------------------------
 sub mode {
     my @vals = @_ or return;
     my $mode = 0;
@@ -187,11 +220,12 @@ jellyfish-query.pl
 
 =head1 SYNOPSIS
 
-  jellyfish-query.pl -s /path/to/suffix -o /path/to/output kmer.files ...
+  jellyfish-query.pl -s /path/to/suffixes -o /path/to/output -q kmer.file
 
   Required Arguments:
 
-    -s|--suffix     The Jellyfish suffix file
+    -q|--query      The kmer/query file to run against the suffixes
+    -s|--suffix     The Jellyfish suffix directory
     -o|--out        Directory to write the output
 
   Options:
@@ -199,14 +233,13 @@ jellyfish-query.pl
     -j|--jellyfish  Path to "jellyfish" binary (default "/usr/local/bin")
     -k|--kmer       Size of the kmers (default "20")
     -v|--verbose    Show progress while processing sequences
-    -t|--tmp_dir    Directory to write temp file (default cwd)
     --help          Show brief help and exit
     --man           Show full documentation
 
 =head1 DESCRIPTION
 
-For read in each FASTA input file, run "jellyfish query" to all indexes in 
-the "suffix" dir and write each sequence/read's mode to the "out" directory.
+Query the k-mer file to each suffix array (Jellyfish index) and write out 
+each sequence/read's mode to the "out" directory.
 
 =head1 SEE ALSO
 
