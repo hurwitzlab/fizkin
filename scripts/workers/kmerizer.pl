@@ -13,77 +13,87 @@ use File::Spec::Functions;
 use Getopt::Long;
 use Pod::Usage;
 
-my $out_dir     = cwd();;
-my $kmer_size   = 20;
-my $verbose     = 0;
-my ($help, $man_page);
+main();
 
-GetOptions(
-    'o|out=s'       => \$out_dir,
-    'k|kmer:i'      => \$kmer_size,
-    'v|verbose'     => \$verbose,
-    'help'          => \$help,
-    'man'           => \$man_page,
-) or pod2usage(2);
+# --------------------------------------------------
+sub main {
+    my $out_dir     = cwd();
+    my $kmer_size   = 20;
+    my $verbose     = 0;
+    my ($help, $man_page);
 
-if ($help || $man_page) {
-    pod2usage({
-        -exitval => 0,
-        -verbose => $man_page ? 2 : 1
-    });
-}
+    GetOptions(
+        'o|out=s'       => \$out_dir,
+        'k|kmer:i'      => \$kmer_size,
+        'v|verbose'     => \$verbose,
+        'help'          => \$help,
+        'man'           => \$man_page,
+    ) or pod2usage(2);
 
-if (!@ARGV) {
-    pod2usage('No input files');
-}
-
-if (!-d $out_dir) {
-    mkpath $out_dir;
-}
-
-my $file_num = 0;
-for my $file (@ARGV) {
-    my $basename    = basename($file);
-    my $kmer_file   = catfile($out_dir, $basename . '.kmers');
-    my $locate_file = catfile($out_dir, $basename . '.loc');
-
-    printf STDERR "%4d: %s\n", ++$file_num, $basename;
-
-    open my $kmer_fh, '>', $kmer_file;
-    open my $locate_fh, '>', $locate_file;
-
-    local $/ = '>';
-    open my $fasta_fh, '<', $file;
-
-    my $i = 0;
-    while (my $fasta = <$fasta_fh>) {
-        chomp $fasta;
-        next unless $fasta;
-
-        my ($header, @seq) = split /\n/, $fasta;
-        my $seq = join '', @seq;
-        my $len = length $seq;
-
-        my $pos;
-        for ($pos = 0; $pos + $kmer_size <= $len; $pos++) {
-            print $kmer_fh 
-                join("\n", '>' . $i++, substr($seq, $pos, $kmer_size), '');
-        }
-
-        if ($pos > 0) {
-            print $locate_fh join("\t", $header, $pos), "\n"; 
-        }
+    if ($help || $man_page) {
+        pod2usage({
+            -exitval => 0,
+            -verbose => $man_page ? 2 : 1
+        });
     }
 
-    close $fasta_fh;
-    close $kmer_fh;
-    close $locate_fh;
+    if (!@ARGV) {
+        pod2usage('No input files');
+    }
+
+    if (!-d $out_dir) {
+        mkpath $out_dir;
+    }
+
+    my $report = sub { say @_ if $verbose };
+    $report->(sprintf(
+        "files (%s), kmer (%s) out (%s)", scalar @ARGV, $kmer_size, $out_dir
+    ));
+
+    my $file_num = 0;
+    for my $file (@ARGV) {
+        my $basename    = basename($file);
+        my $kmer_file   = catfile($out_dir, $basename . '.kmers');
+        my $locate_file = catfile($out_dir, $basename . '.loc');
+
+        $report->(sprintf("%4d: %s\n", ++$file_num, $basename));
+
+        open my $fasta_fh , '<', $file;
+        open my $kmer_fh  , '>', $kmer_file;
+        open my $locate_fh, '>', $locate_file;
+
+        local $/ = '>';
+
+        my $i = 0;
+        while (my $fasta = <$fasta_fh>) {
+            chomp $fasta;
+            next unless $fasta;
+
+            my ($header, @seq) = split /\n/, $fasta;
+            my $seq = join '', @seq;
+            my $len = length $seq;
+
+            my $pos;
+            for ($pos = 0; $pos + $kmer_size <= $len; $pos++) {
+                print $kmer_fh 
+                    join("\n", '>' . $i++, substr($seq, $pos, $kmer_size), '');
+            }
+
+            if ($pos > 0) {
+                print $locate_fh join("\t", $header, $pos), "\n"; 
+            }
+        }
+
+        close $fasta_fh;
+        close $kmer_fh;
+        close $locate_fh;
+    }
+
+    printf "Done, processed %s file%s into %s.\n",
+        $file_num, $file_num == 1 ? '' : 's', canonpath($out_dir);
 }
 
-printf STDERR "Done, processed %s file%s into %s.\n",
-    $file_num, $file_num == 1 ? '' : 's', canonpath($out_dir);
-
-# ----------------------------------------------------
+# --------------------------------------------------
 
 =pod
 
@@ -117,11 +127,11 @@ Jellyfish
 
 =head1 AUTHOR
 
-Ken Youens-Clark E<lt>kclark@cshl.eduE<gt>.
+Ken Youens-Clark E<lt>kclark@gmail.comE<gt>.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2014 Ken Youens-Clark
+Copyright (c) 2014 Hurwitz Lab
 
 This module is free software; you can redistribute it and/or
 modify it under the terms of the GPL (either version 1, or at

@@ -9,18 +9,24 @@ source ./config.sh
 export CWD=$PWD
 
 PROG=`basename $0 ".sh"`
-ERR_DIR="$CWD/err/$PROG"
-OUT_DIR="$CWD/out/$PROG"
+STDERR_DIR="$CWD/err/$PROG"
+STDOUT_DIR="$CWD/out/$PROG"
 
-create_dirs "$ERR_DIR" "$OUT_DIR"
+create_dirs "$STDERR_DIR" "$STDOUT_DIR"
 
-if [[ ! -d "$JELLYFISH_DIR" ]]; then
-    mkdir "$JELLYFISH_DIR"
+#cd "$FASTA_DIR"
+
+export SOURCE_DIR=$HOST_DIR
+export OUT_DIR=$HOST_JELLYFISH_DIR
+
+if [[ ! -d "$OUT_DIR" ]]; then
+    mkdir "$OUT_DIR"
 fi
 
-cd "$FASTA_DIR"
+
+cd "$SOURCE_DIR"
 COUNT=`find -maxdepth 1 -type f -name \*.fa | wc -l`
-echo Found $COUNT files in \"$FASTA_DIR\"
+echo Found $COUNT files in \"$SOURCE_DIR\"
 
 i=0
 for FASTA in *.fa; do
@@ -28,7 +34,9 @@ for FASTA in *.fa; do
 
     export FILE=`readlink -f $FASTA`
 
-    JOB_ID=`qsub -N jellyfish -e "$ERR_DIR/$FASTA" -o "$OUT_DIR/$FASTA" -v FASTA_DIR,MER_SIZE,FILE,JELLYFISH,JELLYFISH_DIR $SCRIPT_DIR/jellyfish-count.sh`
+    JOB_ID=`qsub -N jellyfish -e "$STDERR_DIR/$FASTA" -o "$STDOUT_DIR/$FASTA" -v SOURCE_DIR,MER_SIZE,FILE,JELLYFISH,OUT_DIR $SCRIPT_DIR/jellyfish-count.sh`
+
+    $QSTAT -f $JOB_ID > "$STDOUT_DIR/$FASTA"
 
     printf "%5d: %s %s\n" $i $JOB_ID $FASTA
 done

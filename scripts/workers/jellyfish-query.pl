@@ -25,7 +25,7 @@ Readonly my $MAX_KMER => 32;
 Readonly my %DEFAULT => (
     kmer_size => 20,
     jellyfish => '/usr/local/bin/jellyfish',
-    verbose   => 1,
+    verbose   => 0,
 );
 
 main();
@@ -114,13 +114,21 @@ sub main {
             ++$file_num, basename($suffix_file)
         );
 
-        my ($tmp_fh, $tmp_file) = tempfile(DIR => $out_dir);
+        my $write_dir = catdir($out_dir, basename($suffix_file, '.jf'));
+
+        if (!-d $write_dir) {
+            mkpath $write_dir;
+        }
+
+        my ($tmp_fh, $tmp_file) = tempfile(DIR => $write_dir);
         close $tmp_fh;
 
-        my $result = system(
-            $jellyfish, 'query', '-s', $query_file, 
-            '-o', $tmp_file, $suffix_file
-        );
+        my @cmd = ($jellyfish, 'query', '-s', $query_file, 
+            '-o', $tmp_file, $suffix_file);
+
+        #$report->(join ' ', @cmd);
+
+        my $result = system(@cmd);
 
         if ($result != 0) {
             unlink $tmp_file;
@@ -137,7 +145,13 @@ sub main {
         # 
         open my $jf_fh,  '<', $tmp_file;
         open my $loc_fh, '<', $loc_file;
-        open my $out_fh, '>', catfile($out_dir, $basename . '.mode');
+
+        if (!-d $write_dir) {
+            mkpath $write_dir;
+        }
+
+        #$report->("Writing to ", catfile($write_dir, $basename . '.mode'));
+        open my $out_fh, '>', catfile($write_dir, $basename . '.mode');
 
         while (my $loc = <$loc_fh>) {
             chomp($loc);
@@ -161,15 +175,11 @@ sub main {
         unlink $tmp_file;
     }
 
-    print STDERR "\n" if $verbose;
-
-    printf STDERR "Done, queried %s kmer file%s to %s suffix file%s in %s.\n", 
+    printf "Done, queried %s suffix file%s to %s in %s.\n", 
         commify($file_num), 
         $file_num == 1 ? '' : 's', 
-        scalar @suffix_files,
-        scalar @suffix_files == 1 ? '' : 's',
+        $query_file,
         $timer->();
-    exit 0;
 }
 
 # --------------------------------------------------
@@ -189,21 +199,22 @@ sub mode {
         else {
             my $stats = Statistics::Descriptive::Discrete->new;
             $stats->add_data(@vals);
+            return $stats->mode();
 
-            if (my $mean = int($stats->mean())) {
-                my $two_stds = 2 * (int $stats->standard_deviation());
-                my $min      = $mean - $two_stds;
-                my $max      = $mean + $two_stds;
-
-                if (my @filtered = grep { $_ >= $min && $_ <= $max } @vals) {
-                    my $stats2 = Statistics::Descriptive::Discrete->new;
-                    $stats2->add_data(@filtered);
-                    $mode = int($stats2->mode());
-                }
-            }
-            else {
-                return 0;
-            }
+#            if (my $mean = int($stats->mean())) {
+#                my $two_stds = 2 * (int $stats->standard_deviation());
+#                my $min      = $mean - $two_stds;
+#                my $max      = $mean + $two_stds;
+#
+#                if (my @filtered = grep { $_ >= $min && $_ <= $max } @vals) {
+#                    my $stats2 = Statistics::Descriptive::Discrete->new;
+#                    $stats2->add_data(@filtered);
+#                    $mode = int($stats2->mode());
+#                }
+#            }
+#            else {
+#                return 0;
+#            }
         }
     }
 
@@ -247,11 +258,11 @@ Jellyfish
 
 =head1 AUTHOR
 
-Ken Youens-Clark E<lt>kclark@cshl.eduE<gt>.
+Ken Youens-Clark E<lt>kyclark@email.arizona.eduE<gt>.
 
 =head1 COPYRIGHT
 
-Copyright (c) 2014 Ken Youens-Clark
+Copyright (c) 2014 Hurwitz Lab
 
 This module is free software; you can redistribute it and/or
 modify it under the terms of the GPL (either version 1, or at
