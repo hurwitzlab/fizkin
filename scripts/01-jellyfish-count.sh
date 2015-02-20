@@ -12,17 +12,10 @@ PROG=`basename $0 ".sh"`
 STDERR_DIR="$CWD/err/$PROG"
 STDOUT_DIR="$CWD/out/$PROG"
 
-create_dirs "$STDERR_DIR" "$STDOUT_DIR"
-
-#cd "$FASTA_DIR"
-
 export SOURCE_DIR=$HOST_DIR
 export OUT_DIR=$HOST_JELLYFISH_DIR
 
-if [[ ! -d "$OUT_DIR" ]]; then
-    mkdir "$OUT_DIR"
-fi
-
+create_dirs "$STDERR_DIR" "$STDOUT_DIR" "$OUT_DIR"
 
 cd "$SOURCE_DIR"
 COUNT=`find -maxdepth 1 -type f -name \*.fa | wc -l`

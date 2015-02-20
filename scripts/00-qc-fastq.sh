@@ -13,39 +13,21 @@ PROG=`basename $0 ".sh"`
 ERR_DIR=$CWD/err/$PROG
 OUT_DIR=$CWD/out/$PROG
 
-create_dirs $ERR_DIR $OUT_DIR
+create_dirs "$ERR_DIR" "$OUT_DIR" "$FASTA_DIR"
 
-if [[ ! -d "$FASTQ_DIR" ]]; then
-    mkdir -p "$FASTQ_DIR"
-fi
+cd $FASTQ_DIR
 
-if [[ ! -d "$FASTA_DIR" ]]; then
-    mkdir -p "$FASTA_DIR"
-fi
-
-#
-# QC the fastq files 
-# For example:
-# paired reads are in separate files:
-# RNA_1_ACAGTG_L008_R1_001.fastq
-# RNA_1_ACAGTG_L008_R2_001.fastq
-#
-
-echo cd $RAW_DIR
-cd $RAW_DIR
-NUM_GZIP=`find $RAW_DIR -name \*gz | wc -l`
-if [ $NUM_GZIP -gt 0 ]; then
-    $GUNZIP *.gz
-fi
-
-# send the R1 file and use the name to get the R2 file
 i=0
-for file in *_R1_*.fastq; do
+for FILE in *.fastq; do
     i=$((i+1))
 
-    export FILE=`basename $file`
+    BASENAME=`basename $FILE`
 
-    FIRST=`qsub -v SCRIPT_DIR,RAW_DIR,BIN_DIR,FILE,FASTQ_DIR,FASTA_DIR -N qc_fastq -e $ERR_DIR/$FILE -o $OUT_DIR/$FILE $SCRIPT_DIR/qc_fastq.sh`
+    export IN_FILE="$FASTQ_DIR/$BASENAME"
+    #export OUT_FILE=`echo "$FASTA_DIR/$BASENAME" | sed "s/fastq$/fasta/"`
 
-    printf '%5d: %15s %-30s\n' $i $FIRST $FILE
+    JOB_ID=`qsub -v SCRIPT_DIR,IN_FILE,FASTA_DIR -N qc_fastq -e "$ERR_DIR/$FILE" -o "$OUT_DIR/$FILE" $SCRIPT_DIR/run_qc.sh`
+
+    printf '%5d: %15s %-30s\n' $i $JOB_ID $BASENAME
+    break
 done
