@@ -13,15 +13,7 @@ PROG=`basename $0 ".sh"`
 ERR_DIR=$CWD/err/$PROG
 OUT_DIR=$CWD/out/$PROG
 
-create_dirs $ERR_DIR $OUT_DIR
-
-if [[ ! -d "$FASTQ_DIR" ]]; then
-    mkdir -p "$FASTQ_DIR"
-fi
-
-if [[ ! -d "$FASTA_DIR" ]]; then
-    mkdir -p "$FASTA_DIR"
-fi
+create_dirs "$ERR_DIR" "$OUT_DIR" "$FASTQ_DIR" "$FASTA_DIR"
 
 #
 # QC the fastq files 
@@ -31,10 +23,16 @@ fi
 # RNA_1_ACAGTG_L008_R2_001.fastq
 #
 
-echo cd $RAW_DIR
+if [[ ! -d $RAW_DIR ]]; then
+    echo "Bad RAW_DIR ($RAW_DIR)"
+    exit 0
+fi
+
+echo "Working in RAW_DIR ($RAW_DIR)"
 cd $RAW_DIR
 NUM_GZIP=`find $RAW_DIR -name \*gz | wc -l`
 if [ $NUM_GZIP -gt 0 ]; then
+    echo Gunzipping $NUM_GZIP files
     $GUNZIP *.gz
 fi
 
@@ -45,7 +43,9 @@ for file in *_R1_*.fastq; do
 
     export FILE=`basename $file`
 
-    FIRST=`qsub -v SCRIPT_DIR,RAW_DIR,BIN_DIR,FILE,FASTQ_DIR,FASTA_DIR -N qc_fastq -e $ERR_DIR/$FILE -o $OUT_DIR/$FILE $SCRIPT_DIR/qc_fastq.sh`
+    JOB=`qsub -v SCRIPT_DIR,RAW_DIR,BIN_DIR,FILE,FASTQ_DIR,FASTA_DIR -N qc_fastq -e $ERR_DIR/$FILE -o $OUT_DIR/$FILE $SCRIPT_DIR/qc_fastq.sh`
 
-    printf '%5d: %15s %-30s\n' $i $FIRST $FILE
+    printf '%5d: %15s %-30s\n' $i $JOB $FILE
 done
+
+echo Submitted $i jobs.  Buenos dias!

@@ -26,12 +26,13 @@ if [ -e "$OUT_FILE" ]; then
     rm -f "$OUT_FILE";
 fi
 
-echo Making Bloom filter
-
-$JELLYFISH bc -m $MER_SIZE -s $HASH_SIZE -t $THREADS -o "$BLOOM" "$FILE"
+#echo Making Bloom filter
+#$JELLYFISH bc -m $MER_SIZE -s $HASH_SIZE -t $THREADS -o "$BLOOM" "$FILE"
 
 echo Jellyfish count
 
-$JELLYFISH count -C -m $MER_SIZE -s $HASH_SIZE -t $THREADS -o $JF --bc "$BLOOM" "$FILE"
+# $JELLYFISH count -C -m $MER_SIZE -s $HASH_SIZE -t $THREADS -o $JF --bc "$BLOOM" "$FILE"
+
+$JELLYFISH count -C -m $MER_SIZE -s $HASH_SIZE -t $THREADS -o $JF "$FILE"
 
 echo Finished

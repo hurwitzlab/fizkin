@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Run tallymer search for every read against every index
+# Run Jellyfish query for every read against every index
 #
 
 source ./config.sh
@@ -24,19 +24,20 @@ if [[ ! -d "$KMER_DIR" ]]; then
     mkdir "$KMER_DIR"
 fi
 
-echo Processing FASTA in \"$FASTA_DIR\"
+export FILE_LIST="$FASTA_DIR/file-list";
+
 cd $FASTA_DIR
 
-i=0
-for FILE in DNA*.fa; do
-    export FASTA="$FASTA_DIR/$FILE"
+find . -name DNA\*.fa > $FILE_LIST
 
-    JOB_ID=`qsub -N "query" -e "$STDERR_DIR/$FILE" -o "$STDOUT_DIR/$FILE" -v SCRIPT_DIR,SUFFIX_DIR,COUNT_DIR,KMER_DIR,FASTA,MER_SIZE,JELLYFISH $SCRIPT_DIR/launch-jellyfish-query.sh`
+NUM_FILES=`wc -l $FILE_LIST | cut -d ' ' -f 1`
 
-    $QSTAT -f $JOB_ID > "$JOB_INFO_DIR/$FILE"
+if [ $NUM_FILES -gt 0 ]; then
+    echo Processing $NUM_FILES FASTA files in \"$FASTA_DIR\"
 
-    i=$((i+1))
-    printf "%8d: %s %s\n" $i $JOB_ID $FILE 
-done
+    JOB_ID=`qsub -N "query" -J 1-$NUM_FILES -e "$STDERR_DIR/$FILE" -o "$STDOUT_DIR/$FILE" -v FASTA_DIR,SCRIPT_DIR,SUFFIX_DIR,COUNT_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILE_LIST $SCRIPT_DIR/launch-jellyfish-query.sh`
 
-echo Submitted $i jobs for you.  Namaste.
+    echo Submitted \"$JOB_ID\" for you.  Namaste.
+else
+    echo Could not find any files in \"${FASTA_DIR}.\"
+fi

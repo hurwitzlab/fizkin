@@ -57,20 +57,24 @@ sub main {
         });
     };
 
-    unless ($query_file && -e $query_file) {
-        pod2usage('Missing or bad query file');
+    unless ($query_file) {
+        pod2usage('No query file argument');
     }
 
-    if (!-d $suffix_dir) {
+    unless (-s $query_file) {
+        pod2usage("Empty or non-existent query file ($query_file)");
+    }
+
+    unless (-e $jellyfish && -x _) {
+        pod2usage("Bad Jellyfish binary ($jellyfish)");
+    }
+
+    unless (-d $suffix_dir) {
         pod2usage("Bad suffix dir ($suffix_dir)");
     }
 
     my @suffix_files = File::Find::Rule->file()->name('*.jf')->in($suffix_dir)
         or pod2usage("No Jellyfish (.jf) files in suffix dir '$suffix_dir'");
-
-    unless (-e $jellyfish && -x _) {
-        pod2usage("Bad Jellyfish binary ($jellyfish)");
-    }
 
     if ($out_dir) {
         $out_dir = catdir($out_dir, basename($suffix_dir));
@@ -231,11 +235,11 @@ jellyfish-query.pl
 
 =head1 SYNOPSIS
 
-  jellyfish-query.pl -s /path/to/suffixes -o /path/to/output -q kmer.file
+  jellyfish-query.pl -s /path/to/suffixes -o /path/to/output -q fasta.kmers
 
   Required Arguments:
 
-    -q|--query      The kmer/query file to run against the suffixes
+    -q|--query      The kmers/query file to run against the suffixes
     -s|--suffix     The Jellyfish suffix directory
     -o|--out        Directory to write the output
 

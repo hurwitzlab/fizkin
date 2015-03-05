@@ -19,6 +19,7 @@ main();
 sub main {
     my $out_dir     = cwd();
     my $kmer_size   = 20;
+    my $clobber     = 0;
     my $verbose     = 0;
     my ($help, $man_page);
 
@@ -26,6 +27,7 @@ sub main {
         'o|out=s'       => \$out_dir,
         'k|kmer:i'      => \$kmer_size,
         'v|verbose'     => \$verbose,
+        'c|clobber'     => \$clobber,
         'help'          => \$help,
         'man'           => \$man_page,
     ) or pod2usage(2);
@@ -45,16 +47,19 @@ sub main {
         mkpath $out_dir;
     }
 
-    my $report = sub { say @_ if $verbose };
-    $report->(sprintf(
-        "files (%s), kmer (%s) out (%s)", scalar @ARGV, $kmer_size, $out_dir
-    ));
-
+    my $report   = sub { say @_ if $verbose };
     my $file_num = 0;
+
+    INPUT:
     for my $file (@ARGV) {
         my $basename    = basename($file);
         my $kmer_file   = catfile($out_dir, $basename . '.kmers');
         my $locate_file = catfile($out_dir, $basename . '.loc');
+
+        if ((-s $kmer_file && -s $locate_file) && !$clobber) {
+            say STDERR "$basename looks like it's already been processed.";
+            next INPUT;
+        }
 
         $report->(sprintf("%4d: %s\n", ++$file_num, $basename));
 
@@ -113,6 +118,7 @@ kmerizer.pl
 
     -k|--kmer       Size of the kmers (default "20")
     -v|--verbose    Show progress while processing sequences
+    -c|--clobber    Overwrite existing kmers/locs files (default no)
     --help          Show brief help and exit
     --man           Show full documentation
 
