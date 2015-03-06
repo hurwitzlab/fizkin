@@ -17,19 +17,23 @@ main();
 
 # --------------------------------------------------
 sub main {
-    my $out_dir     = cwd();
-    my $kmer_size   = 20;
-    my $clobber     = 0;
-    my $verbose     = 0;
+    my $in        = '';
+    my $out       = '-';
+    my $loc_out   = '';
+    my $kmer_size = 20;
+    my $clobber   = 0;
+    my $verbose   = 0;
     my ($help, $man_page);
 
     GetOptions(
-        'o|out=s'       => \$out_dir,
-        'k|kmer:i'      => \$kmer_size,
-        'v|verbose'     => \$verbose,
-        'c|clobber'     => \$clobber,
-        'help'          => \$help,
-        'man'           => \$man_page,
+        'i|in=s'    => \$in,
+        'o|out:s'   => \$out,
+        'l|loc:s'   => \$loc_out,
+        'k|kmer:i'  => \$kmer_size,
+        'v|verbose' => \$verbose,
+        'c|clobber' => \$clobber,
+        'help'      => \$help,
+        'man'       => \$man_page,
     ) or pod2usage(2);
 
     if ($help || $man_page) {
@@ -39,63 +43,66 @@ sub main {
         });
     }
 
-    if (!@ARGV) {
+    unless ($in) {
         pod2usage('No input files');
     }
 
-    if (!-d $out_dir) {
-        mkpath $out_dir;
+    unless (-s $in) {
+        pod2usage("Bad input file ($in)");
     }
 
     my $report   = sub { say @_ if $verbose };
     my $file_num = 0;
 
-    INPUT:
-    for my $file (@ARGV) {
-        my $basename    = basename($file);
-        my $kmer_file   = catfile($out_dir, $basename . '.kmers');
-        my $locate_file = catfile($out_dir, $basename . '.loc');
+#    if ((-s $out && -s $loc_out) && !$clobber) {
+#        say STDERR "$basename looks like it's already been processed.";
+#        next INPUT;
+#    }
 
-        if ((-s $kmer_file && -s $locate_file) && !$clobber) {
-            say STDERR "$basename looks like it's already been processed.";
-            next INPUT;
-        }
+    my $kmer_fh;
+    if ($out eq '-') {
+       $kmer_fh = \*STDOUT;
+    } else {
+       open $kmer_fh, '>', $out;
+    }
 
-        $report->(sprintf("%4d: %s\n", ++$file_num, $basename));
+    my $locate_fh;
+    if ($loc_out) {
+        open $locate_fh, '>', $loc_out;
+    }
 
-        open my $fasta_fh , '<', $file;
-        open my $kmer_fh  , '>', $kmer_file;
-        open my $locate_fh, '>', $locate_file;
+    open my $fasta_fh, '<', $in;
+    local $/ = '>';
 
-        local $/ = '>';
+    my $i = 0;
+    while (my $fasta = <$fasta_fh>) {
+        chomp $fasta;
+        next unless $fasta;
 
-        my $i = 0;
-        while (my $fasta = <$fasta_fh>) {
-            chomp $fasta;
-            next unless $fasta;
+        my ($id, @seq) = split /\n/, $fasta;
+        my $seq        = join '', @seq;
+        my $num_kmers  = length($seq) + 1 - $kmer_size;
 
-            my ($header, @seq) = split /\n/, $fasta;
-            my $seq = join '', @seq;
-            my $len = length $seq;
+        next unless $num_kmers > 0;
 
-            my $pos;
-            for ($pos = 0; $pos + $kmer_size <= $len; $pos++) {
+        for my $pos (0 .. $num_kmers - 1) {
+            if ($out eq '-') {
+                say $kmer_fh substr($seq, $pos, $kmer_size);
+            }
+            else {
                 print $kmer_fh 
                     join("\n", '>' . $i++, substr($seq, $pos, $kmer_size), '');
             }
-
-            if ($pos > 0) {
-                print $locate_fh join("\t", $header, $pos), "\n"; 
-            }
         }
 
-        close $fasta_fh;
-        close $kmer_fh;
-        close $locate_fh;
+        if ($locate_fh) {
+            print $locate_fh join("\t", $id, $num_kmers), "\n"; 
+        }
     }
 
-    printf "Done, processed %s file%s into %s.\n",
-        $file_num, $file_num == 1 ? '' : 's', canonpath($out_dir);
+    close $fasta_fh;
+    close $kmer_fh;
+    close $locate_fh if $locate_fh;
 }
 
 # --------------------------------------------------
@@ -108,19 +115,22 @@ kmerizer.pl
 
 =head1 SYNOPSIS
 
-  kmerizer.pl -o /path/to/output input.fasta [...]
+  kmerizer.pl -o kmer-out -l location-out -i input.fasta 
 
   Required Arguments:
 
-    -o|--out        Directory to write the output
+    -i             Input FASTA file
 
   Options:
 
-    -k|--kmer       Size of the kmers (default "20")
-    -v|--verbose    Show progress while processing sequences
-    -c|--clobber    Overwrite existing kmers/locs files (default no)
-    --help          Show brief help and exit
-    --man           Show full documentation
+    -o|--out       Where to write the k-mers (default "-"/STDOUT)
+    -l|--loc       Where to write the locations 
+                   (default nothing, so no output)
+    -k|--kmer      Size of the kmers (default "20")
+    -v|--verbose   Show progress while processing sequences
+    -c|--clobber   Overwrite existing kmers/locs files (default no)
+    --help         Show brief help and exit
+    --man          Show full documentation
 
 =head1 DESCRIPTION
 
