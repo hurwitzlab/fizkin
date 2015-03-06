@@ -11,40 +11,77 @@
 
 # Expects:
 # FASTA_DIR SCRIPT_DIR, SUFFIX_DIR, COUNT_DIR, KMER_DIR, 
-# MER_SIZE, JELLYFISH, FILE_LIST
+# MER_SIZE, JELLYFISH, FILES_LIST
 
 echo Started `date`
 
 source /usr/share/Modules/init/bash
 
-if [[ ! -e $FILE_LIST ]]; then
-    echo Cannot find file list \"$FILE_LIST\"
+if [[ ! -d "$FASTA_DIR" ]]; then
+    echo Cannot find FASTA dir \"$FASTA_DIR\"
+fi
+
+#
+# Find out what our input FASTA file is
+#
+if [[ ! -e $FILES_LIST ]]; then
+    echo Cannot find files list \"$FILES_LIST\"
     exit 1
 fi
 
-FASTA=`head -n +${PBS_ARRAY_INDEX} $FILE_LIST | tail -n 1`
+FILE=`head -n +${PBS_ARRAY_INDEX} $FILES_LIST | tail -n 1`
 
-if [ "${FASTA}x" == "x" ]; then
-    echo Could not get a FASTA file name from \"$FILE_LIST\"
+if [ "${FILE}x" == "x" ]; then
+    echo Could not get a FASTA file name from \"$FILES_LIST\"
     exit 1
 fi
 
-echo FASTA DIR \"$FASTA_DIR\"
-echo FASTA FILE \"$FASTA\"
+FASTA=`readlink -f "$FASTA_DIR/$FILE"`
+
+echo FASTA file \"$FASTA\"
+
+#
+# Find our target Jellyfish files
+#
+SUFFIX_LIST="$TMPDIR/suffixes"
+find $SUFFIX_DIR -name \*.jf > $SUFFIX_LIST
+NUM_SUFFIXES=`wc -l $SUFFIX_LIST | cut -d ' ' -f 1`
+
+echo Found $NUM_SUFFIXES suffixes in \"$SUFFIX_DIR\"
+
+if [ $NUM_SUFFIXES -lt 1 ]; then
+    echo Cannot find any Jellyfish indexes!
+    exit 1
+fi
 
 cd $FASTA_DIR
 
-time $SCRIPT_DIR/kmerizer.pl -k "$MER_SIZE" -o "$KMER_DIR" -v $FASTA
+FASTA_BASE=`basename $FASTA`
+KMER_FILE="$KMER_DIR/${FASTA_BASE}.kmers"
+LOC_FILE="$KMER_DIR/${FASTA_BASE}.loc"
 
-BASENAME=`basename $FASTA`
+echo Kmerizing
 
-KMER_FILE="$KMER_DIR/${BASENAME}.kmers"
+time $SCRIPT_DIR/kmerizer.pl -i "$FASTA" -o "$KMER_FILE" -l "$LOC_FILE" -k "$MER_SIZE" 
 
-if [ -e $KMER_FILE ]; then
-    time $SCRIPT_DIR/jellyfish-query.pl -v -s "$SUFFIX_DIR" -o "$COUNT_DIR" \
-      -k "$MER_SIZE" -j "$JELLYFISH" -q $KMER_FILE
-else
+if [[ ! -e $KMER_FILE ]]; then
     echo Cannot file K-mer file \"$KMER_FILE\"
+    exit 1
 fi
+
+while read SUFFIX_FILE; do
+    SUFFIX_BASE=`basename "$SUFFIX_FILE" ".jf"`
+    OUT_DIR="$COUNT_DIR/$SUFFIX_BASE"
+
+    if [[ ! -d "$OUT_DIR" ]]; then
+        mkdir -p "$OUT_DIR"
+    fi
+
+    OUT_FILE="$OUT_DIR/$FASTA_BASE"
+
+    time $JELLYFISH query -i "$SUFFIX_FILE" < "$KMER_FILE" | "$SCRIPT_DIR/jellyfish-reduce.pl" -l "$LOC_FILE" -o "$OUT_FILE" 
+
+    echo Wrote \"$OUT_FILE\"
+done < "$SUFFIX_LIST"
 
 echo Ended `date`
