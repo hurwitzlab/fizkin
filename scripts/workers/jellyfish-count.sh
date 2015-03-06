@@ -8,31 +8,27 @@
 #PBS -l walltime=24:00:00
 #PBS -l cput=24:00:00
 
+# Expects: SOURCE_DIR, MER_SIZE, FILES_LIST, JELLYFISH, OUT_DIR 
+
+echo Started `date`
+
 source /usr/share/Modules/init/bash
 
 cd "$SOURCE_DIR"
 
-OUT_FILE=`basename "$FILE" ".fa"`
-BLOOM="$OUT_DIR/$OUT_FILE.bc"
-JF="$OUT_DIR/$OUT_FILE.jf"
-THREADS=8
+FILE=`head -n +${PBS_ARRAY_INDEX} $FILES_LIST | tail -n 1`
+BASENANE=`basename "$FILE" ".fa"`
+OUT_FILE="$OUT_DIR/$BASENANE.jf"
+THREADS=12
 HASH_SIZE="100M"
-
-if [ -e "$BLOOM" ]; then
-    rm -f "$BLOOM";
-fi
 
 if [ -e "$OUT_FILE" ]; then
     rm -f "$OUT_FILE";
 fi
 
-#echo Making Bloom filter
-#$JELLYFISH bc -m $MER_SIZE -s $HASH_SIZE -t $THREADS -o "$BLOOM" "$FILE"
+echo Counting $FILE
 
-echo Jellyfish count
+$JELLYFISH count -C -m "$MER_SIZE" -s "$HASH_SIZE" \ 
+  -t "$THREADS" -o "$OUT_FILE" "$FILE"
 
-# $JELLYFISH count -C -m $MER_SIZE -s $HASH_SIZE -t $THREADS -o $JF --bc "$BLOOM" "$FILE"
-
-$JELLYFISH count -C -m $MER_SIZE -s $HASH_SIZE -t $THREADS -o $JF "$FILE"
-
-echo Finished
+echo Finished `date`
