@@ -24,18 +24,18 @@ if [[ ! -d "$KMER_DIR" ]]; then
     mkdir "$KMER_DIR"
 fi
 
-export FILE_LIST="$FASTA_DIR/file-list";
+export FILES_LIST="$FASTA_DIR/file-list";
 
 cd $FASTA_DIR
 
-find . -name DNA\*.fa > $FILE_LIST
+find . -name DNA\*.fa > $FILES_LIST
 
-NUM_FILES=`wc -l $FILE_LIST | cut -d ' ' -f 1`
+NUM_FILES=`wc -l $FILES_LIST | cut -d ' ' -f 1`
 
 if [ $NUM_FILES -gt 0 ]; then
     echo Processing $NUM_FILES FASTA files in \"$FASTA_DIR\"
 
-    JOB_ID=`qsub -N "query" -J 1-$NUM_FILES -e "$STDERR_DIR/$FILE" -o "$STDOUT_DIR/$FILE" -v FASTA_DIR,SCRIPT_DIR,SUFFIX_DIR,COUNT_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILE_LIST $SCRIPT_DIR/launch-jellyfish-query.sh`
+    JOB_ID=`qsub -N "query" -J 1-$NUM_FILES -e "$STDERR_DIR/$FILE" -o "$STDOUT_DIR/$FILE" -v FASTA_DIR,SCRIPT_DIR,SUFFIX_DIR,COUNT_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST $SCRIPT_DIR/launch-jellyfish-query.sh`
 
     echo Submitted \"$JOB_ID\" for you.  Namaste.
 else
