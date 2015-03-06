@@ -54,15 +54,16 @@ sub main {
     my $report   = sub { say @_ if $verbose };
     my $file_num = 0;
 
-#    if ((-s $out && -s $loc_out) && !$clobber) {
-#        say STDERR "$basename looks like it's already been processed.";
-#        next INPUT;
-#    }
-
     my $kmer_fh;
     if ($out eq '-') {
        $kmer_fh = \*STDOUT;
     } else {
+        if ((-e $out && -s _) && !$clobber) {
+            printf STDERR "Out file (%s) exists, no-clobber is on, exiting.\n",
+                basename($out);
+            exit 0;
+        }
+
        open $kmer_fh, '>', $out;
     }
 
@@ -86,13 +87,14 @@ sub main {
         next unless $num_kmers > 0;
 
         for my $pos (0 .. $num_kmers - 1) {
-            if ($out eq '-') {
-                say $kmer_fh substr($seq, $pos, $kmer_size);
-            }
-            else {
-                print $kmer_fh 
-                    join("\n", '>' . $i++, substr($seq, $pos, $kmer_size), '');
-            }
+            say $kmer_fh substr($seq, $pos, $kmer_size);
+#            if ($out eq '-') {
+#                say $kmer_fh substr($seq, $pos, $kmer_size);
+#            }
+#            else {
+#                print $kmer_fh 
+#                    join("\n", '>' . $i++, substr($seq, $pos, $kmer_size), '');
+#            }
         }
 
         if ($locate_fh) {
