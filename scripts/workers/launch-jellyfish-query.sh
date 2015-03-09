@@ -3,7 +3,7 @@
 #PBS -W group_list=bhurwitz
 #PBS -q standard
 #PBS -l jobtype=serial
-#PBS -l select=1:ncpus=1:mem=2gb
+#PBS -l select=1:ncpus=2:mem=10gb
 #PBS -l place=pack:shared
 #PBS -l walltime=24:00:00
 #PBS -l cput=24:00:00
@@ -13,9 +13,11 @@
 # FASTA_DIR SCRIPT_DIR, SUFFIX_DIR, COUNT_DIR, KMER_DIR, 
 # MER_SIZE, JELLYFISH, FILES_LIST
 
+source /usr/share/Modules/init/bash
+
 echo Started `date`
 
-source /usr/share/Modules/init/bash
+echo Host `hostname`
 
 if [[ ! -d "$FASTA_DIR" ]]; then
     echo Cannot find FASTA dir \"$FASTA_DIR\"
@@ -62,16 +64,24 @@ LOC_FILE="$KMER_DIR/${FASTA_BASE}.loc"
 
 echo Kmerizing
 
-time $SCRIPT_DIR/kmerizer.pl -i "$FASTA" -o "$KMER_FILE" -l "$LOC_FILE" -k "$MER_SIZE" 
+$SCRIPT_DIR/kmerizer.pl -i "$FASTA" -o "$KMER_FILE" -l "$LOC_FILE" -k "$MER_SIZE" 
 
 if [[ ! -e $KMER_FILE ]]; then
     echo Cannot file K-mer file \"$KMER_FILE\"
     exit 1
 fi
 
+SEEN="$TMPDIR/seen"
+touch $SEEN
+echo SEEN $SEEN
+
+i=0
 while read SUFFIX_FILE; do
     SUFFIX_BASE=`basename "$SUFFIX_FILE" ".jf"`
     OUT_DIR="$COUNT_DIR/$SUFFIX_BASE"
+
+    let i++
+    printf "%5d: Processing %s" $i $SUFFIX_BASE
 
     if [[ ! -d "$OUT_DIR" ]]; then
         mkdir -p "$OUT_DIR"
@@ -79,9 +89,14 @@ while read SUFFIX_FILE; do
 
     OUT_FILE="$OUT_DIR/$FASTA_BASE"
 
-    time $JELLYFISH query -i "$SUFFIX_FILE" < "$KMER_FILE" | "$SCRIPT_DIR/jellyfish-reduce.pl" -l "$LOC_FILE" -o "$OUT_FILE" 
+    time $JELLYFISH query -i "$SUFFIX_FILE" < "$KMER_FILE" | "$SCRIPT_DIR/jellyfish-reduce.pl" -l "$LOC_FILE" -o "$OUT_FILE" --no-show-mode -u $SEEN
 
     echo Wrote \"$OUT_FILE\"
 done < "$SUFFIX_LIST"
+
+echo Done processed $i suffix files
+
+rm $SUFFIX_LIST
+rm $SEEN
 
 echo Ended `date`
