@@ -3,8 +3,8 @@
 use common::sense;
 use autodie;
 use Getopt::Long;
-use Hurwitz::Utils qw'commify timer_calc take';
-use List::MoreUtils 'uniq';
+use Hurwitz::Utils qw(take);
+use List::MoreUtils qw(uniq);
 use Pod::Usage;
 use Readonly;
 use Statistics::Descriptive::Discrete;
@@ -13,16 +13,20 @@ main();
 
 # --------------------------------------------------
 sub main {
-    my $loc_file  = '';
-    my $in_file   = '-';
-    my $out_file  = '-';
+    my $loc_file    =  '';
+    my $in_file     = '-';
+    my $out_file    = '-';
+    my $show_mode   =   1;
+    my $unique_file =  '';
     my ($help, $man_page);
     GetOptions(
-        'l|loc=s' => \$loc_file,
-        'i|in:s'  => \$in_file,
-        'o|out:s' => \$out_file,
-        'help'    => \$help,
-        'man'     => \$man_page,
+        'l|loc=s'      => \$loc_file,
+        'i|in:s'       => \$in_file,
+        'o|out:s'      => \$out_file,
+        'm|show-mode!' => \$show_mode,
+        'u|unique:s'   => \$unique_file,
+        'help'         => \$help,
+        'man'          => \$man_page,
     ) or pod2usage(2);
 
     if ($help || $man_page) {
@@ -54,13 +58,33 @@ sub main {
         open $out_fh, '>', $out_file;
     }
 
+    my %seen;
+    if ($unique_file) {
+        open my $tmp, '<', $unique_file;
+        while (<$tmp>) {
+            chomp;
+            $seen{$_} = 1;
+        }
+        close $tmp;
+    }
+
+    READ:
     while (my $loc = <$loc_fh>) {
         chomp($loc);
         my ($read_id, $n_kmers) = split /\t/, $loc;
 
+        next READ if $unique_file && defined $seen{ $read_id };
+
         if (my $mode = mode(take($n_kmers, $in))) {
-            print $out_fh join("\t", $read_id, $mode), "\n";
+            $seen{ $read_id }++ if $unique_file;
+            say $out_fh ($show_mode) ? join("\t", $read_id, $mode) : $read_id;
         }
+    }
+
+    if ($unique_file) {
+        open my $tmp, '>', $unique_file;
+        say $tmp join "\n", keys %seen;
+        close $tmp;
     }
 }
 
@@ -104,15 +128,24 @@ jellyfish-reduce.pl - Jellyfish output to read modes
   jellyfish query -i subject.jf | \
   jellyfish-reduce.pl -l input.locs -o subject.modes
 
+Required Arguments:
+
+  -l|--loc        Path to the location file (shows readId/numKmers)
+
 Options:
 
-  --help   Show brief help and exit
-  --man    Show full documentation
+  -i|-in          Path to kmers/counts or '-' for STDIN (default)
+  -o|--out        Path to output file or '-' for STDOUT (default)
+  -u|--unique     Name of the file to read/write unique readIds 
+  -m|--show-mode  Show the mode value (default true)
+                  Use '--no-m' or '--no-show-mode' to negate
+
+  --help          Show brief help and exit
+  --man           Show full documentation
 
 =head1 DESCRIPTION
 
-Read from STDIN the output from Jellyfish.  Use the k-mer location file
-to determine mode for reads.
+Calculate mode of reads from Jellyfish output.
 
 =head1 AUTHOR
 
