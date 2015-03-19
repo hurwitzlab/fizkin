@@ -45,16 +45,17 @@ sub main {
         pod2usage("Bad dir option ($dir)");
     }
 
-    my @files = File::Find::Rule->file()->in($dir)
+    my @files = File::Find::Rule->file()->name('*.fa')->in($dir)
         or pod2usage("No files found in '$dir'");
 
-    $db_path //= catfile($dir, 'sum.db');
+    $db_path ||= catfile($dir, 'sum.db');
 
     my $num_files = @files;
     printf "Found %s file%s in '%s', db = '%s'\n",
         $num_files, $num_files == 1 ? '' : 's', $dir, $db_path;
 
-    my $db = DBI->connect("dbi:SQLite:db=$db_path", '', '');
+    my $db = DBI->connect("dbi:SQLite:db=$db_path", '', '', {RaiseError => 1});
+
     say "Recreating schema";
     for my $cmd (@SCHEMA) {
         $db->do($cmd);

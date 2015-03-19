@@ -10,10 +10,10 @@ source ./config.sh
 export CWD="$PWD"
 
 PROG=`basename $0 ".sh"`
-ERR_DIR=$CWD/err/$PROG
-OUT_DIR=$CWD/out/$PROG
+ERR_DIR="$CWD/err/$PROG"
+OUT_DIR="$CWD/out/$PROG"
 
-create_dirs "$ERR_DIR" "$OUT_DIR" "$FASTQ_DIR" "$FASTA_DIR"
+init_dirs "$ERR_DIR" "$OUT_DIR" "$FASTQ_DIR" "$FASTA_DIR"
 
 #
 # QC the fastq files 

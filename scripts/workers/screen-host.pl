@@ -6,6 +6,7 @@ use Getopt::Long;
 use Cwd qw(cwd);
 use File::Basename qw(basename);
 use File::Spec::Functions qw(catfile);
+use File::Path qw(mkpath);
 use Pod::Usage;
 use Readonly;
 
@@ -38,6 +39,10 @@ sub main {
         pod2usage("Bad host file ($host_file)");
     }
 
+    unless (-d $out_dir) {
+        mkpath $out_dir;
+    }
+
     my @files    = @ARGV or pod2usage('No input files');
     my $host_id  = get_host_ids($host_file);
     my $file_num = 0;
@@ -48,7 +53,7 @@ sub main {
 
         local $/ = '>';
         open my $in , '<', $file;
-        open my $out, '<', catfile($out_dir, basename($file) . 'screened');
+        open my $out, '>', catfile($out_dir, basename($file) . '.screened');
 
         while (my $rec = <$in>) {
             chomp $rec;

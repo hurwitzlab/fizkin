@@ -15,7 +15,7 @@ main();
 sub main {
     my $loc_file    =  '';
     my $in_file     = '-';
-    my $out_file    = '-';
+    my $out_file    =  '';
     my $show_mode   =   1;
     my $unique_file =  '';
     my ($help, $man_page);
@@ -54,7 +54,7 @@ sub main {
     if ($out_file eq '-') {
         $out_fh = \*STDOUT;
     }
-    else {
+    elsif ($out_file) {
         open $out_fh, '>', $out_file;
     }
 
@@ -77,7 +77,12 @@ sub main {
 
         if (my $mode = mode(take($n_kmers, $in))) {
             $seen{ $read_id }++ if $unique_file;
-            say $out_fh ($show_mode) ? join("\t", $read_id, $mode) : $read_id;
+
+            if ($out_fh) {
+                say $out_fh ($show_mode) 
+                    ? join("\t", $read_id, $mode) 
+                    : $read_id;
+            }
         }
     }
 

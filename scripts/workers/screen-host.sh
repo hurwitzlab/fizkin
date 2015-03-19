@@ -3,7 +3,7 @@
 #PBS -W group_list=bhurwitz
 #PBS -q standard
 #PBS -l jobtype=serial
-#PBS -l select=1:ncpus=2:mem=10gb
+#PBS -l select=1:ncpus=2:mem=23gb
 #PBS -l walltime=24:00:00
 #PBS -l cput=24:00:00
 #PBS -u kyclark@email.arizona.edu
@@ -38,10 +38,15 @@ if [ "${FILE}x" == "x" ]; then
     exit 1
 fi
 
-FASTA=`readlink -f "$FASTA_DIR/$FILE"`
+FASTA="$FASTA_DIR/$FILE"
+HOST="$COUNT_DIR/$FILE.host"
 
-echo Screening FASTA file \"$FASTA\" against \"$HOST_HITS\"
+if [ -e "$FASTA" ]; then
+    echo Screening FASTA file \"$FASTA\" against \"$HOST\"
 
-$SCRIPT_DIR/screen-host.pl -h "$HOST_HITS" -o "$SCREENED_DIR" $FASTA
+    $SCRIPT_DIR/screen-host.pl -h "$HOST" -o "$SCREENED_DIR" $FASTA
+else
+    echo FASTA file \"$FASTA\" does not exist.
+fi
 
 echo Ended `date`

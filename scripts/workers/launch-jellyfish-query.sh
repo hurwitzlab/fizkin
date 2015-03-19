@@ -71,9 +71,9 @@ if [[ ! -e $KMER_FILE ]]; then
     exit 1
 fi
 
-SEEN="$TMPDIR/seen"
-touch $SEEN
-echo SEEN $SEEN
+HOST="$TMPDIR/host"
+touch $HOST
+echo HOST $HOST
 
 i=0
 while read SUFFIX_FILE; do
@@ -89,14 +89,20 @@ while read SUFFIX_FILE; do
 
     OUT_FILE="$OUT_DIR/$FASTA_BASE"
 
-    time $JELLYFISH query -i "$SUFFIX_FILE" < "$KMER_FILE" | "$SCRIPT_DIR/jellyfish-reduce.pl" -l "$LOC_FILE" -o "$OUT_FILE" --no-show-mode -u $SEEN
+    #
+    # Note: no "-o" output file as we only care about the $HOST file
+    #
+    $JELLYFISH query -i "$SUFFIX_FILE" < "$KMER_FILE" | \
+      "$SCRIPT_DIR/jellyfish-reduce.pl" -l "$LOC_FILE" -u $HOST
 
     echo Wrote \"$OUT_FILE\"
 done < "$SUFFIX_LIST"
 
 echo Done processed $i suffix files
 
-rm $SUFFIX_LIST
-rm $SEEN
+$SCRIPT_DIR/screen-host.pl -h "$HOST" -o "$SCREENED_DIR" $FASTA
+
+rm "$SUFFIX_LIST"
+rm "$HOST"
 
 echo Ended `date`

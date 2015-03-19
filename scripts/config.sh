@@ -10,6 +10,7 @@ export HOST_JELLYFISH_DIR="/rsgrps/bhurwitz/hurwitzlab/data/jellyfish/mouse"
 export BASE_DIR="/rsgrps/bhurwitz/kyclark/mouse/data"
 export FASTQ_DIR="$BASE_DIR/fastq"
 export FASTA_DIR="$BASE_DIR/fasta"
+export SCREENED_DIR="$BASE_DIR/screened"
 export SUFFIX_DIR="$BASE_DIR/suffix"
 export KMER_DIR="$BASE_DIR/kmer"
 export JELLYFISH_DIR="$BASE_DIR/jellyfish"
@@ -18,12 +19,16 @@ export MER_SIZE=20
 export QSTAT="/usr/local/bin/qstat_local"
 export GUNZIP="/bin/gunzip"
 
-function create_dirs {
+function init_dirs {
     for dir in $*; do
         if [ -d "$dir" ]; then
+            VERB=Cleaned 
             rm -rf "$dir/*"
         else
+            VERB=Created 
             mkdir -p "$dir"
         fi
+
+        echo $VERB \"$dir\"
     done
 }

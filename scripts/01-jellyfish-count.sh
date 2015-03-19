@@ -12,7 +12,7 @@ PROG=`basename "$0" ".sh"`
 ERR_DIR="$CWD/err/$PROG"
 OUT_DIR="$CWD/out/$PROG"
 
-create_dirs "$ERR_DIR" "$OUT_DIR"
+init_dirs "$ERR_DIR" "$OUT_DIR"
 
 export SOURCE_DIR=$HOST_DIR
 export OUT_DIR=$HOST_JELLYFISH_DIR
