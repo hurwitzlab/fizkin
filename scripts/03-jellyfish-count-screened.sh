@@ -1,45 +1,36 @@
 #!/bin/bash
 
 #
-# 03-jellysish-count-screened.sh
-# Create k-mer suffix arrays from a directory of FASTA files
+# 03-jellyfish-count-screened.sh
+# Index host-screened FASTA for pairwise analysis
 #
 
 source ./config.sh
 export SOURCE_DIR="$SCREENED_DIR"
 export OUT_DIR="$JELLYFISH_DIR"
-export CWD=$PWD
+export CWD="$PWD"
 
-#
 # --------------------------------------------------
-#
 
 PROG=`basename "$0" ".sh"`
-ERR_DIR="$CWD/err/$PROG"
-OUT_DIR="$CWD/out/$PROG"
+STDERR_DIR="$CWD/err/$PROG"
+STDOUT_DIR="$CWD/out/$PROG"
 
-init_dirs "$ERR_DIR" "$OUT_DIR"
-
-if [[ ! -d "$OUT_DIR" ]]; then
-    mkdir "$OUT_DIR"
-fi
-
-cd "$SOURCE_DIR"
+init_dirs "$STDERR_DIR" "$STDOUT_DIR" "$OUT_DIR"
 
 export FILES_LIST="$SOURCE_DIR/files-list"
 
-find -maxdepth 1 -type f -name \*.fa > $FILES_LIST
+cd "$SOURCE_DIR"
 
-COUNT=`wc -l $FILES_LIST | cut -d ' ' -f 1`
+find . -name \*.screened | sed "s/^\.\///" > $FILES_LIST
 
-echo Found $COUNT files in \"$SOURCE_DIR\"
+NUM_FILES=`wc -l $FILES_LIST | cut -d ' ' -f 1`
 
-if [ $COUNT -gt 0 ]; then
-    JOB_ID=`qsub -N jellyfish -e "$ERR_DIR/$FASTA" -o "$OUT_DIR/$FASTA" \
-        -v SOURCE_DIR,MER_SIZE,FILES_LIST,JELLYFISH,OUT_DIR -J 1-$COUNT \
-        $SCRIPT_DIR/jellyfish-count.sh`
+echo Found \"$NUM_FILES\" files in \"$SOURCE_DIR\"
 
-    echo Job ID: \"$JOB_ID\"
-else
+if [ $NUM_FILES -eq 0 ]; then
     echo Nothing to do!
+else
+    JOB_ID=`qsub -N jf_self -J 1-$NUM_FILES -e "$STDERR_DIR" -o "$STDOUT_DIR" -v SOURCE_DIR,MER_SIZE,FILES_LIST,JELLYFISH,OUT_DIR $SCRIPT_DIR/jellyfish-count.sh`
+    echo Submitted \"$JOB_ID\" for you.  Shalom.
 fi

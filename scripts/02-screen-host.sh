@@ -1,10 +1,17 @@
 #!/bin/bash
 
 #
+# 02-screen-host.sh
+# 
 # Run Jellyfish query for every read against every index
 #
+# --------------------------------------------------
 
 source ./config.sh
+export SUFFIX_DIR=$HOST_JELLYFISH_DIR
+FILE_PATTERN="DNA\*.fa"
+
+# --------------------------------------------------
 
 CWD=$PWD
 PROG=`basename $0 ".sh"`
@@ -13,8 +20,6 @@ STDOUT_DIR="$CWD/out/$PROG"
 JOB_INFO_DIR="$CWD/job-info/$PROG"
 
 init_dirs "$STDERR_DIR" "$STDOUT_DIR" "$JOB_INFO_DIR"
-
-export SUFFIX_DIR=$HOST_JELLYFISH_DIR
 
 if [[ ! -d "$COUNT_DIR" ]]; then
     mkdir "$COUNT_DIR"
@@ -28,7 +33,7 @@ export FILES_LIST="$FASTA_DIR/file-list";
 
 cd $FASTA_DIR
 
-find . -name DNA\*.fa > $FILES_LIST
+find . -name "$FILE_PATTERN" > $FILES_LIST
 
 NUM_FILES=`wc -l $FILES_LIST | cut -d ' ' -f 1`
 
@@ -39,5 +44,5 @@ if [ $NUM_FILES -gt 0 ]; then
 
     echo Submitted \"$JOB_ID\" for you.  Namaste.
 else
-    echo Could not find any files in \"${FASTA_DIR}.\"
+    echo Nothing to do.
 fi

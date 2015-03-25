@@ -4,7 +4,6 @@
 #PBS -q standard
 #PBS -l jobtype=serial
 #PBS -l select=1:ncpus=4:mem=10gb
-#PBS -l place=pack:shared
 #PBS -l walltime=24:00:00
 #PBS -l cput=24:00:00
 
@@ -12,23 +11,42 @@
 
 echo Started `date`
 
+echo Host `hostname`
+
 source /usr/share/Modules/init/bash
 
-cd "$SOURCE_DIR"
-
-FILE=`head -n +${PBS_ARRAY_INDEX} $FILES_LIST | tail -n 1`
-BASENANE=`basename "$FILE" ".fa"`
-OUT_FILE="$OUT_DIR/$BASENANE.jf"
-THREADS=12
+THREADS=4
 HASH_SIZE="100M"
 
-if [ -e "$OUT_FILE" ]; then
-    rm -f "$OUT_FILE";
+# FILE=`head -n +${PBS_ARRAY_INDEX} $FILES_LIST | tail -n 1`
+
+FILES=$TMPDIR/files
+
+if [ "${PBS_ARRAY_INDEX}x" == "x" ]; then
+    cp $FILES_LIST $FILES
+else
+    head -n +${PBS_ARRAY_INDEX} $FILES_LIST | tail -n 1 > $FILES
 fi
 
-echo Counting $FILE
+NUM_FILES=`wc -l $FILES | cut -d ' ' -f 1`
 
-$JELLYFISH count -C -m "$MER_SIZE" -s "$HASH_SIZE" \ 
-  -t "$THREADS" -o "$OUT_FILE" "$FILE"
+echo Processing \"$NUM_FILES\" files
+
+echo cd "$SOURCE_DIR"
+cd "$SOURCE_DIR"
+
+i=0
+while read FILE; do
+    OUT_FILE="$OUT_DIR/$FILE.jf"
+
+    if [ -e "$OUT_FILE" ]; then
+        rm -f "$OUT_FILE";
+    fi
+
+    let i++
+    printf "%5d: %s\n" $i $FILE
+
+    $JELLYFISH count -C -m $MER_SIZE -s $HASH_SIZE -t $THREADS -o $OUT_FILE $FILE
+done < $FILES
 
 echo Finished `date`

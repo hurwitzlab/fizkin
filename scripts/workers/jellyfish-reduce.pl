@@ -17,6 +17,7 @@ sub main {
     my $in_file     = '-';
     my $out_file    =  '';
     my $show_mode   =   1;
+    my $mode_min    =   1;
     my $unique_file =  '';
     my ($help, $man_page);
     GetOptions(
@@ -25,6 +26,7 @@ sub main {
         'o|out:s'      => \$out_file,
         'm|show-mode!' => \$show_mode,
         'u|unique:s'   => \$unique_file,
+        'mode-min:i'   => \$mode_min,
         'help'         => \$help,
         'man'          => \$man_page,
     ) or pod2usage(2);
@@ -75,7 +77,9 @@ sub main {
 
         next READ if $unique_file && defined $seen{ $read_id };
 
-        if (my $mode = mode(take($n_kmers, $in))) {
+        my $mode = mode(take($n_kmers, $in));
+
+        if ($mode >= $mode_min) {
             $seen{ $read_id }++ if $unique_file;
 
             if ($out_fh) {

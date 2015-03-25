@@ -24,3 +24,5 @@ nytprof.out
 bin
 .DS_Store
 job-info
+core.*
+tmp.*

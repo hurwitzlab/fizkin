@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# launch-jellyfish-query.sh
+
 #PBS -W group_list=bhurwitz
 #PBS -q standard
 #PBS -l jobtype=serial
@@ -64,7 +66,8 @@ LOC_FILE="$KMER_DIR/${FASTA_BASE}.loc"
 
 echo Kmerizing
 
-$SCRIPT_DIR/kmerizer.pl -i "$FASTA" -o "$KMER_FILE" -l "$LOC_FILE" -k "$MER_SIZE" 
+$SCRIPT_DIR/kmerizer.pl -i "$FASTA" -o "$KMER_FILE" \
+  -l "$LOC_FILE" -k "$MER_SIZE" 
 
 if [[ ! -e $KMER_FILE ]]; then
     echo Cannot file K-mer file \"$KMER_FILE\"
@@ -77,17 +80,8 @@ echo HOST $HOST
 
 i=0
 while read SUFFIX_FILE; do
-    SUFFIX_BASE=`basename "$SUFFIX_FILE" ".jf"`
-    OUT_DIR="$COUNT_DIR/$SUFFIX_BASE"
-
     let i++
     printf "%5d: Processing %s" $i $SUFFIX_BASE
-
-    if [[ ! -d "$OUT_DIR" ]]; then
-        mkdir -p "$OUT_DIR"
-    fi
-
-    OUT_FILE="$OUT_DIR/$FASTA_BASE"
 
     #
     # Note: no "-o" output file as we only care about the $HOST file
