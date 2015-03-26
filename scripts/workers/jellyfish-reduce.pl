@@ -17,7 +17,7 @@ sub main {
     my $in_file     = '-';
     my $out_file    =  '';
     my $show_mode   =   1;
-    my $mode_min    =   1;
+    my $mode_min    =   0;
     my $unique_file =  '';
     my ($help, $man_page);
     GetOptions(
@@ -77,7 +77,8 @@ sub main {
 
         next READ if $unique_file && defined $seen{ $read_id };
 
-        my $mode = mode(take($n_kmers, $in));
+        my @vals = take($n_kmers, $in) or last;
+        my $mode = mode(@vals);
 
         if ($mode >= $mode_min) {
             $seen{ $read_id }++ if $unique_file;
@@ -143,8 +144,8 @@ Required Arguments:
 
 Options:
 
-  -i|-in          Path to kmers/counts or '-' for STDIN (default)
-  -o|--out        Path to output file or '-' for STDOUT (default)
+  -i|-in          Path to kmers/counts or '-' for STDIN (default STDIN)
+  -o|--out        Path to output file or '-' for STDOUT (default nothing)
   -u|--unique     Name of the file to read/write unique readIds 
   -m|--show-mode  Show the mode value (default true)
                   Use '--no-m' or '--no-show-mode' to negate

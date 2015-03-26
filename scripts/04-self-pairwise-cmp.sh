@@ -10,7 +10,6 @@
 source ./config.sh
 export SUFFIX_DIR="$JELLYFISH_DIR"
 export OUT_DIR="$MODE_DIR"
-FILE_PATTERN="\*.screened"
 
 # --------------------------------------------------
 
@@ -30,20 +29,23 @@ if [[ ! -d "$KMER_DIR" ]]; then
     mkdir "$KMER_DIR"
 fi
 
-export FILES_LIST="$SCREENED_DIR/file-list";
+export FILES_LIST="${SCREENED_DIR}/files-list"
 
-cd $SCREENED_DIR
-
-find . -name $FILE_PATTERN | sed "s/^\.\///" > $FILES_LIST
+find $SCREENED_DIR -name \*.screened | sed "s/^\.\///" > $FILES_LIST
 
 NUM_FILES=`wc -l $FILES_LIST | cut -d ' ' -f 1`
 
-if [ $NUM_FILES -gt 0 ]; then
-    echo Processing $NUM_FILES screened FASTA files in \"$SCREENED_DIR\"
+echo Found \"$NUM_FILES\" screened FASTA files in \"$SCREENED_DIR\"
 
-    JOB_ID=`qsub -N "query" -J 1-$NUM_FILES -e "$STDERR_DIR" -o "$STDOUT_DIR" -v SCRIPT_DIR,SUFFIX_DIR,OUT_DIR,SCREENED_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST $SCRIPT_DIR/pairwise-cmp.sh`
+if [ $NUM_FILES -lt 1 ]; then
+    echo Nothing to do.
+    exit 1
+fi
 
-    echo Submitted \"$JOB_ID\" for you.  Namaste.
+JOB=`qsub -N "self-qry" -J 1-$NUM_FILES -e "$STDERR_DIR" -o "$STDOUT_DIR" -v SCRIPT_DIR,SUFFIX_DIR,OUT_DIR,SCREENED_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST $SCRIPT_DIR/pairwise-cmp.sh`
+
+if [ $? -eq 0 ]; then
+    echo Submitted job \"$JOB\" for you. Namaste.
 else
-    echo Could not find any files in \"${FASTA_DIR}.\"
+    echo -e "\nError submitting job\n$JOB\n"
 fi

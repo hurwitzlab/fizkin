@@ -22,7 +22,7 @@ sub main {
     my $loc_out   = '';
     my $kmer_size = 20;
     my $clobber   = 0;
-    my $verbose   = 0;
+    my $quiet     = 0;
     my ($help, $man_page);
 
     GetOptions(
@@ -30,7 +30,7 @@ sub main {
         'o|out:s'   => \$out,
         'l|loc:s'   => \$loc_out,
         'k|kmer:i'  => \$kmer_size,
-        'v|verbose' => \$verbose,
+        'q|quiet'   => \$quiet,
         'c|clobber' => \$clobber,
         'help'      => \$help,
         'man'       => \$man_page,
@@ -51,7 +51,7 @@ sub main {
         pod2usage("Bad input file ($in)");
     }
 
-    my $report   = sub { say @_ if $verbose };
+    my $report   = sub { say @_ unless $quiet };
     my $file_num = 0;
 
     my $kmer_fh;
@@ -59,8 +59,10 @@ sub main {
        $kmer_fh = \*STDOUT;
     } else {
         if ((-e $out && -s _) && !$clobber) {
-            printf STDERR "Out file (%s) exists, no-clobber is on, exiting.\n",
-                basename($out);
+            $report->(
+                sprintf "Out file (%s) exists, no-clobber is on, exiting.\n",
+                basename($out)
+            );
             exit 0;
         }
 
@@ -129,7 +131,7 @@ kmerizer.pl
     -l|--loc       Where to write the locations 
                    (default nothing, so no output)
     -k|--kmer      Size of the kmers (default "20")
-    -v|--verbose   Show progress while processing sequences
+    -q|--quiet     Don't progress while processing sequences (default verbose)
     -c|--clobber   Overwrite existing kmers/locs files (default no)
     --help         Show brief help and exit
     --man          Show full documentation
