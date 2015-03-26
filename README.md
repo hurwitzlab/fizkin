@@ -1,6 +1,11 @@
-# Tara Oceans
+# Fizkin
+
+K-mer analysis.
 
 * "scripts/workers" - driver/worker scripts
 * "bin" - necessary compiled tools, e.g., "faSplit"
 
-Ken Youens-Clark <kyclark@gmail.com>
+# Authors
+
+* Bonnie Hurwitz <bhurwitz@email.arizona.edu>
+* Ken Youens-Clark <kyclark@email.arizona.edu>
