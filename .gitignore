@@ -26,3 +26,7 @@ bin
 job-info
 core.*
 tmp.*
+Makefile
+inc
+META.yml
+MYMETA.*
