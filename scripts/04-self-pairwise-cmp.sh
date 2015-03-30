@@ -90,7 +90,7 @@ echo There are \"$NUM_PAIRS\" pairs to process
 JOB=$(qsub -N "self-qry" -J 1-$NUM_PAIRS:$STEP_SIZE -e "$STDERR_DIR" -o "$STDOUT_DIR" -v SCRIPT_DIR,SUFFIX_DIR,OUT_DIR,SCREENED_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST,STEP_SIZE $SCRIPT_DIR/pairwise-cmp.sh)
 
 if [ $? -eq 0 ]; then
-    echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Namaste.
+    echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Sayonara.
 else
     echo -e "\nError submitting job\n$JOB\n"
 fi
