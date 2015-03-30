@@ -20,17 +20,17 @@ submit to SLURM.
 
 A couple of scripts use Perl, some CPAN modules, and this:
 
-  https://github.com/hurwitzlab/perl-lib
+    https://github.com/hurwitzlab/perl-lib
 
 On the HPC systems I use, I find it easiest to use "local::lib" to install
 the Perl modules I need:
 
-  http://search.cpan.org/dist/local-lib/
+    http://search.cpan.org/dist/local-lib/
 
 To see what needs to be installed (assuming you have cpanminus installed):
 
-  $ perl Makefile.PL
-  $ cpanm --install-deps .
+    $ perl Makefile.PL
+    $ cpanm --install-deps .
 
 # Authors
 
