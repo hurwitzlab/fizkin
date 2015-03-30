@@ -1,8 +1,11 @@
 #!/bin/bash
 
+# --------------------------------------------------
+#
 # 01-jellyfish-count-host.sh
 #
 # Use Jellyfish to index host FASTA
+#
 # --------------------------------------------------
 
 source ./config.sh
@@ -13,7 +16,7 @@ export OUT_DIR="$HOST_JELLYFISH_DIR"
 
 export CWD=$PWD
 
-PROG=`basename "$0" ".sh"`
+PROG=$(basename "$0" ".sh")
 STDERR_DIR="$CWD/err/$PROG"
 STDOUT_DIR="$CWD/out/$PROG"
 
@@ -25,7 +28,7 @@ export FILES_LIST="$SOURCE_DIR/files-list"
 
 find -maxdepth 1 -type f -name \*.fa > $FILES_LIST
 
-COUNT=`wc -l $FILES_LIST | cut -d ' ' -f 1`
+COUNT=$(lc $FILES_LIST)
 
 echo Found \"$COUNT\" files in \"$SOURCE_DIR\"
 

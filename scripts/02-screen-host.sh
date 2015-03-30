@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# --------------------------------------------------
 #
 # 02-screen-host.sh
 # 
@@ -14,7 +15,7 @@ FILE_PATTERN="DNA\*.fa"
 # --------------------------------------------------
 
 CWD=$PWD
-PROG=`basename $0 ".sh"`
+PROG=$(basename $0 ".sh")
 STDERR_DIR="$CWD/err/$PROG"
 STDOUT_DIR="$CWD/out/$PROG"
 JOB_INFO_DIR="$CWD/job-info/$PROG"
@@ -35,7 +36,7 @@ cd $FASTA_DIR
 
 find . -name "$FILE_PATTERN" > $FILES_LIST
 
-NUM_FILES=`wc -l $FILES_LIST | cut -d ' ' -f 1`
+NUM_FILES=$(lc $FILES_LIST)
 
 if [ $NUM_FILES -gt 0 ]; then
     echo Processing $NUM_FILES FASTA files in \"$FASTA_DIR\"

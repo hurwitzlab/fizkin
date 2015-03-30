@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# --------------------------------------------------
 # 00-qc-fastq.sh
 # 
 # This script runs illumina QC on a directory
@@ -18,7 +19,7 @@ source ./config.sh
 
 export CWD="$PWD"
 
-PROG=`basename $0 ".sh"`
+PROG=$(basename $0 ".sh")
 STDERR_DIR="$CWD/err/$PROG"
 STDOUT_DIR="$CWD/out/$PROG"
 
@@ -31,7 +32,7 @@ fi
 
 echo "Working in RAW_DIR ($RAW_DIR)"
 cd $RAW_DIR
-NUM_GZIP=`find $RAW_DIR -name \*gz | wc -l`
+NUM_GZIP=$(find $RAW_DIR -name \*gz | wc -l)
 if [ $NUM_GZIP -gt 0 ]; then
     echo Gunzipping $NUM_GZIP files
     $GUNZIP *.gz
@@ -45,9 +46,9 @@ i=0
 for file in *_R1_*.fastq; do
     i=$((i+1))
 
-    export FILE=`basename $file`
+    export FILE=$(basename $file)
 
-    JOB=`qsub -v SCRIPT_DIR,RAW_DIR,BIN_DIR,FILE,FASTQ_DIR,FASTA_DIR -N qc_fastq -e "$STDERR_DIR/$FILE" -o "$STDOUT_DIR/$FILE" $SCRIPT_DIR/qc_fastq.sh`
+    JOB=$(qsub -v SCRIPT_DIR,RAW_DIR,BIN_DIR,FILE,FASTQ_DIR,FASTA_DIR -N qc_fastq -e "$STDERR_DIR/$FILE" -o "$STDOUT_DIR/$FILE" $SCRIPT_DIR/qc_fastq.sh)
 
     printf '%5d: %15s %-30s\n' $i $JOB $FILE
 done

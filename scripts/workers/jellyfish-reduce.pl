@@ -2,6 +2,8 @@
 
 use common::sense;
 use autodie;
+use File::Basename qw(dirname);
+use File::Path qw(make_path);
 use Getopt::Long;
 use Hurwitz::Utils qw(take);
 use List::MoreUtils qw(uniq);
@@ -57,6 +59,11 @@ sub main {
         $out_fh = \*STDOUT;
     }
     elsif ($out_file) {
+        my $dir = dirname($out_file);
+        unless (-d $dir) {
+            make_path $dir;
+        }
+
         open $out_fh, '>', $out_file;
     }
 

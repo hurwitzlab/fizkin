@@ -30,9 +30,8 @@ fi
 
 NUM_FILES=`wc -l $FILES | cut -d ' ' -f 1`
 
-echo Processing \"$NUM_FILES\" files
+echo Processing \"$NUM_FILES\" files in \"$SOURCE_DIR\"
 
-echo cd "$SOURCE_DIR"
 cd "$SOURCE_DIR"
 
 i=0
@@ -46,7 +45,16 @@ while read FILE; do
     let i++
     printf "%5d: %s\n" $i $FILE
 
-    $JELLYFISH count -C -m $MER_SIZE -s $HASH_SIZE -t $THREADS -o $OUT_FILE $FILE
+    $JELLYFISH count -C -m $MER_SIZE -s $HASH_SIZE -t $THREADS \
+      -o $OUT_FILE $FILE
+
+    BASENAME=$(basename $FILE ".screened")
+    KMER_FILE="$KMER_DIR/${BASENAME}.kmers"
+    LOC_FILE="$KMER_DIR/${BASENAME}.loc"
+
+    $SCRIPT_DIR/kmerizer.pl -q -i "$FILE" -o "$KMER_FILE" \
+        -l "$LOC_FILE" -k "$MER_SIZE"
+
 done < $FILES
 
 echo Finished `date`
