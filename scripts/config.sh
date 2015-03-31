@@ -58,6 +58,7 @@ export KMER_DIR="$DATA_DIR/kmer"
 export JELLYFISH_DIR="$DATA_DIR/jellyfish"
 export COUNT_DIR="$DATA_DIR/counts"
 export MODE_DIR="$DATA_DIR/modes"
+export MATRIX_DIR="$DATA_DIR/matrix"
 
 #
 # Some custom functions for our scripts
@@ -77,4 +78,3 @@ function init_dirs {
 function lc() {
     wc -l $1 | cut -d ' ' -f 1
 }
-

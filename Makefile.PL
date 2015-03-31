@@ -9,6 +9,7 @@ license        'GPL';
 requires 'common::sense';
 requires 'File::Basename';
 requires 'File::Find::Rule';
+requires 'File::CountLines';
 requires 'Hurwitz::Utils';
 requires 'List::MoreUtils';
 requires 'Pod::Usage';
