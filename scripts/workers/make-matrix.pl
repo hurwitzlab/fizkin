@@ -2,7 +2,6 @@
 
 use common::sense;
 use autodie;
-use Data::Dump qw(dump);
 use File::Basename qw(dirname basename);
 use File::Find::Rule;
 use File::CountLines qw(count_lines);
@@ -58,15 +57,12 @@ sub process {
     for my $file (@$files) {
         my $sample1 = basename(dirname($file));
         my $sample2 = basename($file);
-        my $lc      = count_lines($file);
-        $matrix{ $sample1 }{ $sample2 } = $lc;
+        $matrix{ $sample1 }{ $sample2 } = count_lines($file);
         last if $i++ > 20;
     }
 
-    my @keys = keys %matrix;
-    my @all_keys = sort(uniq(@keys, map { keys %{ $matrix{ $_ } } } @keys ));
-
-    #say dump(\%matrix);
+    my @keys     = keys %matrix;
+    my @all_keys = sort(uniq(@keys, map { keys %{ $matrix{ $_ } } } @keys));
 
     say join "\t", '', @all_keys;
     for my $sample1 (@all_keys) {
@@ -85,25 +81,22 @@ __END__
 
 =head1 NAME
 
-make-matrix.pl - a script
+make-matrix.pl - reduce pair-wise mode values to a tab-delimited matrix
 
 =head1 SYNOPSIS
 
-  make-matrix.pl 
+  make-matrix.pl -d /path/to/modes > matrix
 
 Options:
 
-  --help   Show brief help and exit
-  --man    Show full documentation
+  -d|--dir  Directory containing the modes
+  --help    Show brief help and exit
+  --man     Show full documentation
 
 =head1 DESCRIPTION
 
-Describe what the script does, what input it expects, what output it
-creates, etc.
-
-=head1 SEE ALSO
-
-perl.
+After calculating the pair-wise read modes, run this script to reduce 
+them to a matrix for feeding to R.
 
 =head1 AUTHOR
 

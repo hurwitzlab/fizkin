@@ -4,7 +4,8 @@
 #
 # 05-make-matrix.sh
 #
-# Create the matrix needed for R
+# Reduce the "modes" into a matrix needed for 
+# analysis in R
 #
 # --------------------------------------------------
 
