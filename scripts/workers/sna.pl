@@ -155,7 +155,7 @@ print R2 '', "\n";
 print R2 'par(mfrow=c(3,4))                           #examine marginal mixing', "\n";
 print R2 'for(i in 3:dim(OUT)[2]) { plot(OUT[,i],type="l") }', "\n";
 print R2 '', "\n";
-print R2 'dev.print(device=postscript, "Zgraph1.eps", onefile=FALSE, horizontal=FALSE)', "\n";
+print R2 'postscript(“Zgraph1.eps", width = 12, height = 17, horizontal = FALSE,onefile = FALSE, paper = "special", colormodel = "cmyk",family = "Courier")"', "\n";
 print R2 '', "\n";
 print R2 '', "\n";
 print R2 'PS<-OUT[OUT$scan>round(max(OUT$scan)/2),-(1:3)]  #posterior samples, dropping', "\n";
@@ -172,7 +172,7 @@ print R2 '#plots of posterior densities', "\n";
 print R2 'par(mfrow=c(3,4))', "\n";
 print R2 'for(i in 1:dim(PS)[2]) { plot(density(PS[,i]),main=colnames(PS)[i]) }', "\n";
 print R2 '', "\n";
-print R2 'dev.print(device=postscript, "Zgraph2.eps", onefile=FALSE, horizontal=FALSE)', "\n";
+print R2 'postscript(“Zgraph2.eps", width = 12, height = 17, horizontal = FALSE,onefile = FALSE, paper = "special", colormodel = "cmyk",family = "Courier")"', "\n";
 print R2 '', "\n";
 print R2 '###analysis of latent positions', "\n";
 print R2 'Z<-read.table("Z")', "\n";
@@ -220,7 +220,9 @@ for my $id (@samples) {
 }
 print R2 '))   #add labels here', "\n";
 print R2 '    {', "\n";
-print R2 'dev.print(device=postscript, "Zgraph3.eps", onefile=FALSE, horizontal=FALSE)', "\n";
+print R2 'postscript(“Zgraph3.eps", width = 12, height = 17, horizontal = FALSE,onefile = FALSE, paper = "special", colormodel = "cmyk",family = "Courier")"', "\n"; 
+#print R2 'print ( type= "eps" , file= "Zgraph3.eps" )', "\n";
+#print R2 'dev.print(device=postscript, "Zgraph3.eps", onefile=FALSE, horizontal=FALSE)', "\n";
 
 
 my $cmd2 = `R CMD BATCH --slave plot.R`;
