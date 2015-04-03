@@ -43,7 +43,7 @@ sub main {
         pod2usage("Found no regular files in dir '$dir'");
     }
 
-    printf "Processing %s files.\n", scalar @files;
+    printf STDERR "Processing %s files.\n", scalar @files;
 
     process(\@files);
 }

@@ -11,10 +11,14 @@
 # expects: 
 # SCRIPT_DIR RAW_DIR BIN_DIR FILE FASTQ_DIR FASTA_DIR 
 
-# R is needed by the SolexaQA++ program
-hostname 
+echo Host \"$(hostname)\"
 
+echo Started $(date)
+
+# --------------------------------------------------
+# R is needed by the SolexaQA++ program!
 module load R
+# --------------------------------------------------
 
 source /usr/share/Modules/init/bash
 
@@ -51,3 +55,5 @@ for f in ${TRIMMED[@]}; do
     BASE=`basename $f '.trimmed' | sed "s/fastq/fa/"`
     $SCRIPT_DIR/fastq2fasta.awk $f > $FASTA_DIR/$BASE
 done
+
+echo Finished $(date)
