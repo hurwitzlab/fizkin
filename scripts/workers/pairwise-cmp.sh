@@ -9,7 +9,8 @@
 #PBS -l walltime=24:00:00
 #PBS -l cput=24:00:00
 
-set -ux
+set -u
+#set -x
 
 echo Started $(date)
 
@@ -17,31 +18,53 @@ echo Host $(hostname)
 
 PAIRS_FILE=$(mktemp)
 
-echo PBS_ARRAY_INDEX $PBS_ARRAY_INDEX
-echo STEP_SIZE $STEP_SIZE
-echo FILES_LIST $FILES_LIST
+if [ -n "$PBS_ARRAY_INDEX" ]; then
+    echo PBS_ARRAY_INDEX $PBS_ARRAY_INDEX
+    echo STEP_SIZE $STEP_SIZE
+    echo FILES_LIST $FILES_LIST
 
-HEAD=$((${PBS_ARRAY_INDEX:=1} + ${STEP_SIZE:=1}))
-echo HEAD $HEAD
+    HEAD=$((${PBS_ARRAY_INDEX:=1} + ${STEP_SIZE:=1}))
+    echo HEAD $HEAD
 
-if [ $HEAD -lt 1 ]; then
-    echo Cannot figure a HEAD count from PBS_ARRAY_INDEX \"$PBS_ARRAY_INDEX\" and STEP_SIZE \"$STEP_SIZE\"
-    exit 1
+    if [ $HEAD -lt 1 ]; then
+        echo Cannot figure a HEAD count from PBS_ARRAY_INDEX \"$PBS_ARRAY_INDEX\" and STEP_SIZE \"$STEP_SIZE\"
+        exit 1
+    fi
+
+    head -n $HEAD $FILES_LIST | tail -n ${STEP_SIZE:=1} > $PAIRS_FILE
+
+    echo PAIRS_FILE $PAIRS_FILE
+
+    if [ $NUM_PAIRS -lt 1 ]; then
+        echo Cannot determine PAIRS from files list \"$FILES_LIST\"
+        exit 1
+    fi
+elif [ -n "$FASTA" ] && [ -n "$SUFFIX" ]; then
+    echo "$FASTA $SUFFIX" >> $PAIRS_FILE
 fi
-
-head -n $HEAD $FILES_LIST | tail -n ${STEP_SIZE:=1} > $PAIRS_FILE
-
-echo PAIRS_FILE $PAIRS_FILE
-cat $PAIRS_FILE
 
 NUM_PAIRS=$(wc -l $PAIRS_FILE | cut -d ' ' -f 1)
+echo Found \"$NUM_PAIRS\" pairs to process
 
 if [ $NUM_PAIRS -lt 1 ]; then
-    echo Cannot determine PAIRS from files list \"$FILES_LIST\"
+    echo Nothing to do.
     exit 1
 fi
 
-echo Found \"$NUM_PAIRS\" pairs to process
+if [ -z "$OUT_DIR" ]; then
+    echo No output directory defined
+    exit 1
+fi
+
+if [ -z "$KMER_DIR" ]; then
+    echo No kmer directory defined
+    exit 1
+fi
+
+if [[ ! -x "$JELLYFISH" ]]; then
+    echo Cannot find executable jellyfish
+    exit 1
+fi
 
 i=0
 while read FASTA SUFFIX; do
