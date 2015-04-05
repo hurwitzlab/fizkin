@@ -9,26 +9,35 @@
 
 # Expects: SOURCE_DIR, MER_SIZE, FILES_LIST, JELLYFISH, OUT_DIR 
 
-echo Started `date`
+echo Started $(date)
 
-echo Host `hostname`
+echo Host $(hostname)
 
 source /usr/share/Modules/init/bash
+
+if [ -z $SCRIPT_DIR ]; then
+    echo Missing SCRIPT_DIR
+    exit 1
+fi
+
+KMERIZER="$SCRIPT_DIR/kmerizer.pl"
+if [[ ! -e $KMERIZER ]]; then
+    echo Cannot find kmerizer \"$KMERIZER\"
+    exit 1
+fi
 
 THREADS=4
 HASH_SIZE="100M"
 
-# FILE=`head -n +${PBS_ARRAY_INDEX} $FILES_LIST | tail -n 1`
+FILES=$(mktemp)
 
-FILES=$TMPDIR/files
-
-if [ "${PBS_ARRAY_INDEX}x" == "x" ]; then
+if [ -z "$PBS_ARRAY_INDEX" ]; then
     cp $FILES_LIST $FILES
 else
     head -n +${PBS_ARRAY_INDEX} $FILES_LIST | tail -n 1 > $FILES
 fi
 
-NUM_FILES=`wc -l $FILES | cut -d ' ' -f 1`
+NUM_FILES=$(wc -l $FILES | cut -d ' ' -f 1)
 
 echo Processing \"$NUM_FILES\" files in \"$SOURCE_DIR\"
 
@@ -45,16 +54,17 @@ while read FILE; do
     let i++
     printf "%5d: %s\n" $i $FILE
 
-    $JELLYFISH count -C -m $MER_SIZE -s $HASH_SIZE -t $THREADS \
+#    $JELLYFISH count -C -m $MER_SIZE -s $HASH_SIZE -t $THREADS \
+#      -o $OUT_FILE $FILE
+
+    $JELLYFISH count -m $MER_SIZE -s $HASH_SIZE -t $THREADS \
       -o $OUT_FILE $FILE
 
-    BASENAME=$(basename $FILE ".screened")
+    BASENAME=$(basename $FILE)
     KMER_FILE="$KMER_DIR/${BASENAME}.kmers"
     LOC_FILE="$KMER_DIR/${BASENAME}.loc"
 
-    $SCRIPT_DIR/kmerizer.pl -q -i "$FILE" -o "$KMER_FILE" \
-        -l "$LOC_FILE" -k "$MER_SIZE"
-
+    $KMERIZER -q -i "$FILE" -o "$KMER_FILE" -l "$LOC_FILE" -k "$MER_SIZE"
 done < $FILES
 
-echo Finished `date`
+echo Finished $(date)

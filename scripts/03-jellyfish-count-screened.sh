@@ -8,8 +8,10 @@
 #
 # --------------------------------------------------
 
+#set -ux
+
 source ./config.sh
-export SOURCE_DIR="$SCREENED_DIR"
+export SOURCE_DIR="$FASTA_DIR"
 export OUT_DIR="$JELLYFISH_DIR"
 export CWD="$PWD"
 
@@ -25,15 +27,15 @@ export FILES_LIST="$SOURCE_DIR/files-list"
 
 cd "$SOURCE_DIR"
 
-find . -name \*.screened | sed "s/^\.\///" > $FILES_LIST
+find . -name \*.fa | sed "s/^\.\///" > $FILES_LIST
 
 NUM_FILES=$(lc $FILES_LIST)
 
 echo Found \"$NUM_FILES\" files in \"$SOURCE_DIR\"
 
-if [ $NUM_FILES -eq 0 ]; then
+if [ -z $NUM_FILES ] || [ $NUM_FILES -lt 1 ]; then
     echo Nothing to do!
 else
-    JOB_ID=`qsub -N jf_self -J 1-$NUM_FILES -e "$STDERR_DIR" -o "$STDOUT_DIR" -v SOURCE_DIR,MER_SIZE,FILES_LIST,JELLYFISH,KMER_DIR,OUT_DIR $SCRIPT_DIR/jellyfish-count.sh`
+    JOB_ID=`qsub -N jf_self -J 1-$NUM_FILES -e "$STDERR_DIR" -o "$STDOUT_DIR" -v SCRIPT_DIR,SOURCE_DIR,MER_SIZE,FILES_LIST,JELLYFISH,KMER_DIR,OUT_DIR $SCRIPT_DIR/jellyfish-count.sh`
     echo Submitted \"$JOB_ID\" for you.  Shalom.
 fi
