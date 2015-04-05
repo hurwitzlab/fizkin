@@ -8,12 +8,12 @@
 #PBS -l cput=24:00:00
 
 # --------------------------------------------------
-echo Started `date`
+echo Started $(date)
 
-echo Host `hostname`
+echo Host $(hostname)
 
 source /usr/share/Modules/init/bash
 
-$SCRIPT_DIR/make-matrix.pl -d $MODE_DIR > $MATRIX_DIR/matrix
+$SCRIPT_DIR/make-matrix.pl -d $MODE_DIR > $MATRIX_DIR/matrix.tab
 
-echo Finished `date`
+echo Finished $(date)

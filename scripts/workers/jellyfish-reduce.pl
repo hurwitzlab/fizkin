@@ -107,7 +107,7 @@ sub main {
 
 # --------------------------------------------------
 sub mode {
-    my @vals = @_ or return;
+    my @vals = grep { $_ > 0 } @_ or return;
     my $mode = 0;
 
     if (scalar @vals == 1) {

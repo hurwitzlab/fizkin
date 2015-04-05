@@ -2,12 +2,14 @@
 
 # self-pairwise.cmp.sh
 
-#PBS -W group_list=b5mbsaaa
+#PBS -W group_list=bhurwitz
 #PBS -q standard
 #PBS -l jobtype=serial
 #PBS -l select=1:ncpus=4:mem=10gb
 #PBS -l walltime=24:00:00
 #PBS -l cput=24:00:00
+#PBS -m ae
+#PBS -M kyclark@email.arizona.edu
 
 set -u
 #set -x
@@ -35,10 +37,6 @@ if [ -n "$PBS_ARRAY_INDEX" ]; then
 
     echo PAIRS_FILE $PAIRS_FILE
 
-    if [ $NUM_PAIRS -lt 1 ]; then
-        echo Cannot determine PAIRS from files list \"$FILES_LIST\"
-        exit 1
-    fi
 elif [ -n "$FASTA" ] && [ -n "$SUFFIX" ]; then
     echo "$FASTA $SUFFIX" >> $PAIRS_FILE
 fi
@@ -47,7 +45,7 @@ NUM_PAIRS=$(wc -l $PAIRS_FILE | cut -d ' ' -f 1)
 echo Found \"$NUM_PAIRS\" pairs to process
 
 if [ $NUM_PAIRS -lt 1 ]; then
-    echo Nothing to do.
+    echo Nothing to do
     exit 1
 fi
 

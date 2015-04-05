@@ -10,6 +10,7 @@
 
 set -u
 source ./config.sh
+INPUT_DIR="$FASTA_DIR"
 export SUFFIX_DIR="$JELLYFISH_DIR"
 export OUT_DIR="$MODE_DIR"
 export STEP_SIZE=90
@@ -33,17 +34,17 @@ if [[ ! -d "$KMER_DIR" ]]; then
 fi
 
 #
-# Find all the screened files
+# Find all the input files
 #
-SCREENED_FILES=$(mktemp)
+INPUT_FILES=$(mktemp)
 
-find $SCREENED_DIR -name \*.screened > $SCREENED_FILES
+find $INPUT_DIR -name \*.fa > $INPUT_FILES
 
-NUM_FASTA_FILES=$(lc $SCREENED_FILES)
+NUM_INPUT_FILES=$(lc $INPUT_FILES)
 
-echo Found \"$NUM_FASTA_FILES\" files in \"$SCREENED_DIR\"
+echo Found \"$NUM_INPUT_FILES\" files in \"$INPUT_DIR\"
 
-if [ $NUM_FASTA_FILES -lt 1 ]; then
+if [ $NUM_INPUT_FILES -lt 1 ]; then
     echo Nothing to do.
     exit 1
 fi
@@ -67,7 +68,7 @@ fi
 #
 # Pair up the FASTA/Jellyfish files
 #
-export FILES_LIST="${SCREENED_DIR}/files-list"
+export FILES_LIST="${INPUT_DIR}/files-list"
 if [ -e $FILES_LIST ]; then
     rm -f $FILES_LIST 
 fi
@@ -76,7 +77,7 @@ while read FASTA; do
     while read SUFFIX; do
         echo "$FASTA $SUFFIX" >> $FILES_LIST
     done < $JELLYFISH_FILES
-done < $SCREENED_FILES
+done < $INPUT_FILES
 
 NUM_PAIRS=$(lc $FILES_LIST)
 
@@ -87,7 +88,7 @@ fi
 
 echo There are \"$NUM_PAIRS\" pairs to process 
 
-JOB=$(qsub -N "self-qry" -J 1-$NUM_PAIRS:$STEP_SIZE -e "$STDERR_DIR" -o "$STDOUT_DIR" -v SCRIPT_DIR,SUFFIX_DIR,OUT_DIR,SCREENED_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST,STEP_SIZE $SCRIPT_DIR/pairwise-cmp.sh)
+JOB=$(qsub -N "self-qry" -J 1-$NUM_PAIRS:$STEP_SIZE -e "$STDERR_DIR" -o "$STDOUT_DIR" -v SCRIPT_DIR,SUFFIX_DIR,OUT_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST,STEP_SIZE $SCRIPT_DIR/pairwise-cmp.sh)
 
 if [ $? -eq 0 ]; then
     echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Sayonara.
@@ -96,4 +97,4 @@ else
 fi
 
 rm $JELLYFISH_FILES
-rm $SCREENED_FILES
+rm $INPUT_FILES

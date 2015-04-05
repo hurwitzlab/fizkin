@@ -52,13 +52,12 @@ sub main {
 sub process {
     my $files = shift;
 
-    my $i;
     my %matrix;
     for my $file (@$files) {
         my $sample1 = basename(dirname($file));
         my $sample2 = basename($file);
-        $matrix{ $sample1 }{ $sample2 } = count_lines($file);
-        last if $i++ > 20;
+        $matrix{ $sample1 }{ $sample2 } 
+            = sprintf('%.2f', log(count_lines($file)));
     }
 
     my @keys     = keys %matrix;

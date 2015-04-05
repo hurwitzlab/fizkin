@@ -18,7 +18,7 @@ export GUNZIP="/bin/gunzip"
 #
 # The main checkout
 #
-PROJECT_DIR="/rsgrps/bhurwitz/kyclark/mouse/"
+PROJECT_DIR="/rsgrps/bhurwitz/kyclark/pov/"
 
 #
 # Where we can find the worker scripts
@@ -37,19 +37,8 @@ export BIN_DIR="/rsgrps/bhurwitz/hurwitzlab/bin"
 export JELLYFISH="$BIN_DIR/jellyfish"
 
 #
-# Where to find the "raw" DNA reads
-#
-export RAW_DIR="/rsgrps/bhurwitz/hurwitzlab/data/raw/Doetschman_20111007/all"
-
-#
-# Where to find the host genome for screening
-#
-export HOST_DIR="/rsgrps/bhurwitz/hurwitzlab/data/reference/mouse_genome/20141111"
-
-#
 # Where to put the results of our steps
 #
-export HOST_JELLYFISH_DIR="$DATA_DIR/jellyfish/mouse"
 export FASTQ_DIR="$DATA_DIR/fastq"
 export FASTA_DIR="$DATA_DIR/fasta"
 export SCREENED_DIR="$DATA_DIR/screened"
