@@ -2,12 +2,15 @@
 
 # self-pairwise.cmp.sh
 
-#PBS -W group_list=b5mbsaaa
+#PBS -W group_list=bhurwitz
 #PBS -q standard
 #PBS -l jobtype=serial
 #PBS -l select=1:ncpus=4:mem=10gb
 #PBS -l walltime=24:00:00
 #PBS -l cput=24:00:00
+
+#PBS -m ae
+#PBS -M kyclark@email.arizona.edu
 
 set -u
 #set -x
