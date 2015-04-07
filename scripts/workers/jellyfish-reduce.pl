@@ -77,6 +77,7 @@ sub main {
         close $tmp;
     }
 
+    my $count;
     READ:
     while (my $loc = <$loc_fh>) {
         chomp($loc);
@@ -88,14 +89,19 @@ sub main {
         my $mode = mode(@vals);
 
         if ($mode >= $mode_min) {
+            $count++;
             $seen{ $read_id }++ if $unique_file;
 
-            if ($out_fh) {
-                say $out_fh ($show_mode) 
-                    ? join("\t", $read_id, $mode) 
-                    : $read_id;
-            }
+            #if ($out_fh) {
+            #    say $out_fh ($show_mode) 
+            #        ? join("\t", $read_id, $mode) 
+            #        : $read_id;
+            #}
         }
+    }
+
+    if ($out_fh) {
+        say $out_fh $count;
     }
 
     if ($unique_file) {
