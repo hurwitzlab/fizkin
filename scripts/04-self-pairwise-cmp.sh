@@ -37,7 +37,7 @@ fi
 #
 INPUT_FILES=$(mktemp)
 
-find $INPUT_DIR -name \*.screened > $INPUT_FILES
+find $INPUT_DIR -type f > $INPUT_FILES
 
 NUM_INPUT_FILES=$(lc $INPUT_FILES)
 
