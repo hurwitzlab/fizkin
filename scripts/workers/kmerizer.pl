@@ -90,13 +90,6 @@ sub main {
 
         for my $pos (0 .. $num_kmers - 1) {
             say $kmer_fh substr($seq, $pos, $kmer_size);
-#            if ($out eq '-') {
-#                say $kmer_fh substr($seq, $pos, $kmer_size);
-#            }
-#            else {
-#                print $kmer_fh 
-#                    join("\n", '>' . $i++, substr($seq, $pos, $kmer_size), '');
-#            }
         }
 
         if ($locate_fh) {

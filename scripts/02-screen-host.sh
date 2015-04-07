@@ -9,7 +9,8 @@
 # --------------------------------------------------
 
 source ./config.sh
-export SUFFIX_DIR=$HOST_JELLYFISH_DIR
+export SUFFIX_DIR="$HOST_JELLYFISH_DIR"
+export INPUT_DIR="$FASTA_DIR"
 FILE_PATTERN="DNA\*.fa"
 
 # --------------------------------------------------
@@ -30,20 +31,29 @@ if [[ ! -d "$KMER_DIR" ]]; then
     mkdir "$KMER_DIR"
 fi
 
-export FILES_LIST="$FASTA_DIR/file-list";
-
-cd $FASTA_DIR
-
-find . -name "$FILE_PATTERN" > $FILES_LIST
-
+#
+# Find input FASTA files
+#
+FILES_LIST="${INPUT_DIR}/${PROG}.in"
+find $INPUT_DIR -name "$FILE_PATTERN" > $FILES_LIST
 NUM_FILES=$(lc $FILES_LIST)
 
-if [ $NUM_FILES -gt 0 ]; then
-    echo Processing $NUM_FILES FASTA files in \"$FASTA_DIR\"
+echo Found \"$NUM_FILES\" FASTA files in \"$INPUT_DIR\"
 
-    JOB_ID=`qsub -N "query" -J 1-$NUM_FILES -e "$STDERR_DIR" -o "$STDOUT_DIR" -v FASTA_DIR,SCRIPT_DIR,SUFFIX_DIR,COUNT_DIR,SCREENED_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST $SCRIPT_DIR/launch-jellyfish-query.sh`
-
-    echo Submitted \"$JOB_ID\" for you.  Namaste.
-else
+if [ $NUM_FILES -lt 1 ]; then
     echo Nothing to do.
+    exit 1
 fi
+
+export PATH=$SCRIPT_DIR:$PATH
+
+JOB_ID=$(qsub -N "host-jf" -J 1-$NUM_FILES -e "$STDERR_DIR" -o "$STDOUT_DIR" -v FILES_LIST,COUNT_DIR,SCREENED_DIR,KMER_DIR,MER_SIZE,JELLYFISH $SCRIPT_DIR/screen-host.sh)
+
+if [ $? -eq 0 ]; then
+    echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Sayonara.
+else
+    echo -e "\nError submitting job\n$JOB\n"
+fi
+
+rm $INPUT_LIST
+rm $SUFFIX_LIST

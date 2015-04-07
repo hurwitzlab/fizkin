@@ -10,9 +10,8 @@
 
 set -u
 source ./config.sh
-INPUT_DIR="$FASTA_DIR"
+INPUT_DIR="$SCREENED_DIR"
 export SUFFIX_DIR="$JELLYFISH_DIR"
-export OUT_DIR="$MODE_DIR"
 export STEP_SIZE=90
 
 # --------------------------------------------------
@@ -23,10 +22,10 @@ STDERR_DIR="$CWD/err/$PROG"
 STDOUT_DIR="$CWD/out/$PROG"
 JOB_INFO_DIR="$CWD/job-info/$PROG"
 
-init_dirs "$STDERR_DIR" "$STDOUT_DIR" "$JOB_INFO_DIR"
+init_dirs "$STDERR_DIR" "$STDOUT_DIR"
 
-if [[ ! -d "$OUT_DIR" ]]; then
-    mkdir "$OUT_DIR"
+if [[ ! -d "$MODE_DIR" ]]; then
+    mkdir "$MODE_DIR"
 fi
 
 if [[ ! -d "$KMER_DIR" ]]; then
@@ -38,7 +37,7 @@ fi
 #
 INPUT_FILES=$(mktemp)
 
-find $INPUT_DIR -name \*.fa > $INPUT_FILES
+find $INPUT_DIR -name \*.screened > $INPUT_FILES
 
 NUM_INPUT_FILES=$(lc $INPUT_FILES)
 
@@ -88,7 +87,7 @@ fi
 
 echo There are \"$NUM_PAIRS\" pairs to process 
 
-JOB=$(qsub -N "self-qry" -J 1-$NUM_PAIRS:$STEP_SIZE -e "$STDERR_DIR" -o "$STDOUT_DIR" -v SCRIPT_DIR,SUFFIX_DIR,OUT_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST,STEP_SIZE $SCRIPT_DIR/pairwise-cmp.sh)
+JOB=$(qsub -N "self-qry" -J 1-$NUM_PAIRS:$STEP_SIZE -e "$STDERR_DIR" -o "$STDOUT_DIR" -v SCRIPT_DIR,SUFFIX_DIR,MODE_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST,STEP_SIZE $SCRIPT_DIR/pairwise-cmp.sh)
 
 if [ $? -eq 0 ]; then
     echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Sayonara.

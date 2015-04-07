@@ -7,6 +7,8 @@
 #PBS -l place=pack:shared
 #PBS -l walltime=24:00:00
 #PBS -l cput=24:00:00
+#PBS -M kyclark@email.arizona.edu
+#PBS -m ea
 
 # expects: 
 # SCRIPT_DIR RAW_DIR BIN_DIR FILE FASTQ_DIR FASTA_DIR 

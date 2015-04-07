@@ -37,6 +37,7 @@ sub main {
         pod2usage("Bad directory ($dir)");
     }
 
+    say STDERR "Looking for files in '$dir'";
     my @files = File::Find::Rule->file()->in($dir);
 
     unless (@files) {
@@ -52,10 +53,13 @@ sub main {
 sub process {
     my $files = shift;
 
+    my $i = 0;
     my %matrix;
     for my $file (@$files) {
+        say ++$i;
         my $sample1 = basename(dirname($file));
         my $sample2 = basename($file);
+        my $lc      = `wc -l $file`;
         $matrix{ $sample1 }{ $sample2 } 
             = sprintf('%.2f', log(count_lines($file)));
     }
