@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 
+$| = 1;
+
 use common::sense;
 use autodie;
 use File::Basename qw(dirname basename);
@@ -51,18 +53,30 @@ sub main {
 
 # --------------------------------------------------
 sub process {
-    my $files = shift;
-
-    my $i = 0;
+    my $files   = shift;
+    my $n_files = scalar @$files or return;
+    my $i       = 0;
     my %matrix;
     for my $file (@$files) {
-        say ++$i;
+        $i++;
+        if ($i % 100 == 0) {
+            printf STDERR "%-70s\r", sprintf("%3d%%", int($i/$n_files) * 100);
+        }
+
         my $sample1 = basename(dirname($file));
         my $sample2 = basename($file);
-        my $lc      = `wc -l $file`;
-        $matrix{ $sample1 }{ $sample2 } 
-            = sprintf('%.2f', log(count_lines($file)));
+
+        open my $fh, '<', $file;
+        local $/;
+        my $n = <$fh>;
+        close $fh;
+
+        $n ||= 0;
+
+        $matrix{ $sample1 }{ $sample2 } = sprintf('%.2f', log($n));
+        last if $i > 5000;
     }
+    print "\n";
 
     my @keys     = keys %matrix;
     my @all_keys = sort(uniq(@keys, map { keys %{ $matrix{ $_ } } } @keys));
