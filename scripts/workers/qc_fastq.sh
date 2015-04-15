@@ -1,61 +1,76 @@
 #!/bin/bash
 
-#PBS -W group_list=bhurwitz
+#PBS -W group_list=gwatts
 #PBS -q standard
 #PBS -l jobtype=serial
 #PBS -l select=1:ncpus=2:mem=5gb
-#PBS -l place=pack:shared
 #PBS -l walltime=24:00:00
 #PBS -l cput=24:00:00
 #PBS -M kyclark@email.arizona.edu
 #PBS -m ea
 
+#
+# Runs QC on a set of paired-end Illumina FASTQ files
+#
+
 # expects: 
 # SCRIPT_DIR RAW_DIR BIN_DIR FILE FASTQ_DIR FASTA_DIR 
+
+# --------------------------------------------------
+# R is needed by the SolexaQA++ program
+module load R
+# --------------------------------------------------
+
+set -u
 
 echo Host \"$(hostname)\"
 
 echo Started $(date)
 
-# --------------------------------------------------
-# R is needed by the SolexaQA++ program!
-module load R
-# --------------------------------------------------
+HEAD=$((${PBS_ARRAY_INDEX:=1} + ${STEP_SIZE:=1}))
 
-source /usr/share/Modules/init/bash
+TMP_FILES=$(mktemp)
 
-SED=/bin/sed
+head -n $HEAD $FILES_LIST | tail -n ${STEP_SIZE:=1} > $TMP_FILES
 
-cd $RAW_DIR
+NUM_FILES=$(wc -l $TMP_FILES | cut -d ' ' -f 1)
 
-#
-# The following script runs QC on  
-# a set of paired end illumina fastq
-# files
-#
+echo Found \"$NUM_FILES\" files to process
 
-FILES=($FILE)
-TRIMMED=(${FILE}.trimmed)
-FILE2=$(echo $FILE | $SED 's/_R1_/_R2_/')
+i=0
+while read FILE; do
+  BASENAME=$(basename $FILE)
+  let i++
+  printf "%5d: %s\n" $i $BASENAME
 
-if [ -e $FILE2 ]; then
-    FILES+=" $FILE2"
-    TRIMMED+=" ${FILE2}.trimmed"
-fi
+  for F in $FASTQ_DIR/${BASENAME}*; do
+    rm -f $F
+  done
 
-$BIN_DIR/SolexaQA++ analysis -d $FASTQ_DIR ${FILES[@]}
-$BIN_DIR/SolexaQA++ dynamictrim -d $FASTQ_DIR ${FILES[@]}
+  for ACTION in analysis dynamictrim; do
+    $BIN_DIR/SolexaQA++ $ACTION -d $FASTQ_DIR $FILE
+  done
 
-cd $FASTQ_DIR
+  TRIMMED_FILE=$FASTQ_DIR/${BASENAME}.trimmed
 
-$BIN_DIR/SolexaQA++ lengthsort -d $FASTQ_DIR ${TRIMMED[@]}
+  if [[ ! -s $TRIMMED_FILE ]]; then
+    echo Failed to create trimmed file \"$TRIMMED_FILE\"
+    continue
+  fi
+  
+  CLIPPED_FILE=${TRIMMED_FILE}.clipped
 
-#
-# create a fasta file from fastq
-#
-for f in ${TRIMMED[@]}; do
-    BASE=`basename $f '.trimmed' | sed "s/fastq/fa/"`
-    $SCRIPT_DIR/fastq2fasta.awk $f > $FASTA_DIR/$BASE
-done
+  $BIN_DIR/fastx_clipper -v -l ${MIN_SEQ_LENGTH:=50} \
+    -i $TRIMMED_FILE -o $CLIPPED_FILE
+
+  if [[ ! -s $CLIPPED_FILE ]]; then
+    echo Failed to create clipped file \"$CLIPPED_FILE\"
+    continue
+  fi
+
+  FASTA=$(basename $FILE '.fastq')
+
+  $SCRIPT_DIR/fastq2fasta.awk $CLIPPED_FILE > "${FASTA_DIR}/${FASTA}.fa"
+done < $TMP_FILES
 
 echo Finished $(date)
