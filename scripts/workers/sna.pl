@@ -12,6 +12,7 @@ use File::Path;
 use File::Spec::Functions;
 use Getopt::Long;
 use Pod::Usage;
+use Template;
 
 main();
 
@@ -38,88 +39,224 @@ sub main {
         });
     }
 
-    unless ($seq_matrix) {
-        pod2usage('No sequence matrix');
-    }
-
-    unless ($metadata) {
-        pod2usage('No metadata file');
-    }
-
-    # step 1 create the metadata tables for the analysis
-    # the input is in the format -> id<tab>@metadata (with a header)
-    # an output table is created for each metadata field (name = header)
-    # the output table has values:
-    # 0 =  not the same between pairwise samples 
-    # 1 =  the same between pairwise samples
-    # these metadata tables match the seq_matrix in format
-    # also note the ids and their order should be consistent
-    # between the metadata tables and seq_matrix
-
-    open my $M, '<', $metadata;
-    my @meta = (); #metadata types
-    my %sample_to_metadata = ();
-    my @samples;
-
-    my $i = 0;
-    while (<$M>) {
-       $i++;
-       chomp $_;
-
-       # get the header to define types of metadata
-       if ($i == 1) { 
-          @meta = split (/\t/, $_);
-          shift @meta; # remove id
-       }
-       else {
-          my @values = split (/\t/, $_);
-          my $id = shift @values;
-          push (@samples, $id);
-          for my $m (@meta) {
-             my $v = shift @values;
-             $sample_to_metadata{$id}{$m} = $v;
-          }
-       }
-    }
-
-    # create a file for each column in the metadata 
-    # for each pairwise combination of samples
-    # where 0 means they differ
-    # and 1 means they are the same
-
-    for my $m (@meta) {
-       open my $OUT, '>', "$m.txt";
-       say $OUT join "\t", '', @samples;
-       close $OUT;
-    }
-
-    # note that we sort samples to keep them in the same order as the
-    # input seq_matrix table
-    for my $id (sort @samples) {
-      for my $m (@meta) {
-         open my $OUT, '>>', "$m.txt";
-         my @same_or_not = ();
-         for my $s (sort @samples) {
-             my $s1 = $sample_to_metadata{$id}{$m};
-             my $s2 = $sample_to_metadata{$s}{$m};
-             if ($s1 eq $s2) {
-                push (@same_or_not, "1");
-             }
-             else {
-                push (@same_or_not, "0");
-             }
-         }
-         print $OUT "$id\t", join("\t", @same_or_not), "\n";
-         close $OUT; 
-       }
-    }
+#    unless ($seq_matrix) {
+#        pod2usage('No sequence matrix');
+#    }
+#
+#    unless ($metadata) {
+#        pod2usage('No metadata file');
+#    }
+#
+#    # step 1 create the metadata tables for the analysis
+#    # the input is in the format -> id<tab>@metadata (with a header)
+#    # an output table is created for each metadata field (name = header)
+#    # the output table has values:
+#    # 0 =  not the same between pairwise samples 
+#    # 1 =  the same between pairwise samples
+#    # these metadata tables match the seq_matrix in format
+#    # also note the ids and their order should be consistent
+#    # between the metadata tables and seq_matrix
+#
+#    open my $M, '<', $metadata;
+#    my @meta = (); #metadata types
+#    my %sample_to_metadata = ();
+#    my @samples;
+#
+#    my $i = 0;
+#    while (my $line = <$M>) {
+#       $i++;
+#       chomp $line;
+#
+#       # get the header to define types of metadata
+#       if ($i == 1) { 
+#          @meta = split /\t/, $line;
+#          shift @meta; # remove id
+#       }
+#       else {
+#          my @values = split /\t/, $line;
+#          my $id = shift @values;
+#          push @samples, $id;
+#          for my $m (@meta) {
+#             my $v = shift @values;
+#             $sample_to_metadata{ $id }{ $m } = $v;
+#          }
+#       }
+#    }
+#
+#    # create a file for each column in the metadata 
+#    # for each pairwise combination of samples
+#    # where 0 means they differ
+#    # and 1 means they are the same
+#
+#    for my $m (@meta) {
+#       open my $OUT, '>', "$m.txt";
+#       say $OUT join "\t", '', @samples;
+#       close $OUT;
+#    }
+#
+#    # note that we sort samples to keep them in the same order as the
+#    # input seq_matrix table
+#    for my $id (sort @samples) {
+#        for my $m (@meta) {
+#            open my $OUT, '>>', "$m.txt";
+#            my @same_or_not = ();
+#            for my $s (sort @samples) {
+#                my $s1 = $sample_to_metadata{$id}{$m};
+#                my $s2 = $sample_to_metadata{$s}{$m};
+#
+#                push @same_or_not, $s1 eq $s2;
+#            }
+#
+#            say $OUT join "\t", $id, @same_or_not;
+#            close $OUT;
+#        }
+#    }
 
             
     # now we need to run the SNA analysis
     # be sure that `module load R` has laready been run in the
     # shell script that runs this perl script on the 
     # compute node
+    my $t         = Template->new;
+    my $sna_tmpl  = template_sna();
+    my $plot_tmpl = template_plot();
 
+    $t->process(
+        \$sna_tmpl, 
+        { 
+            out_dir    => $out_dir,
+            seq_matrix => $seq_matrix,
+        }, 
+        'sna.R'
+    ) or die $t->error;
+
+    $t->process(
+        \$plot_tmpl, 
+        { 
+            out_dir => $out_dir,
+            #scan    => $scan,
+        }, 
+        'plot.R'
+    ) or die $t->error;
+}
+
+# --------------------------------------------------
+sub template_sna {
+    return <<EOF
+setwd("[% out_dir %]")
+library(xtable)
+NS <- 100000
+odens <- 10
+source("gbme.r")
+Y <- as.matrix(read.table("[% seq_matrix %]", header = TRUE))
+n <- nrow(Y)
+k <- [% meta.size %]
+Xss<-array(NA, dim=c(n,n,k))
+[% SET counter = 0 -%]
+[% FOREACH m IN meta -%]
+   [% SET counter=count + 1 -%]
+   [% m %] <- as.matrix(read.table("[% m %].txt", header = TRUE))
+   Xss[,, [% counter%] ] <- [% m %]
+[% END -%]
+
+gbme(Y=Y, Xss, fam="gaussian", k=2, direct=F, NS=NS, odens=odens)
+
+x.names <- c("[% meta.join('", "')%]", "intercept")
+
+OUT <- read.table("OUT", header=T)
+full.model <- t(apply(OUT, 2, quantile, c(0.5, 0.025, 0.975)))
+rownames(full.model)[1:[% meta.size %]] <- x.names
+table1 <- xtable(full.model[1:[% meta.size %]], align="c|c||cc")
+print ( xtable (table1), type= "latex" , file= "table1.tex" )
+EOF
+}
+
+# --------------------------------------------------
+sub template_plot {
+    return <<EOF
+setwd("[% out_dir %]")
+source("gbme.r")
+
+OUT<-read.table("OUT",header=T) # read in output
+
+par(mfrow=c(3,4))               # examine marginal mixing
+for(i in 3:dim(OUT)[2]) { plot(OUT[,i],type="l") }
+
+postscript(“Zgraph1.eps", width = 12, height = 17, horizontal = FALSE,onefile = FALSE, paper = "special", colormodel = "cmyk",family = "Courier")"
+
+
+# posterior samples, dropping
+# the first half of the chain
+# to allow for burn in
+PS<-OUT[OUT[% scan %]>round(max(OUT[% scan %])/2),-(1:3)]  
+
+#gives mean, std dev, and .025,.5,.975 quantiles
+M.SD.Q<-rbind( apply(PS,2,mean),apply(PS,2,sd)
+  apply(PS,2,quantile,probs=c(.025,.5,.975)) )
+
+print(M.SD.Q)
+
+#plots of posterior densities
+par(mfrow=c(3,4))
+for(i in 1:dim(PS)[2]) { plot(density(PS[,i]),main=colnames(PS)[i]) }
+
+postscript(“Zgraph2.eps", width = 12, height = 17, horizontal = FALSE,onefile = FALSE, paper = "special", colormodel = "cmyk",family = "Courier")"
+
+###analysis of latent positions
+Z<-read.table("Z")
+
+#convert to an array
+nss<-dim(OUT)[1]
+n<-dim(Z)[1]/nss
+k<-dim(Z)[2]
+PZ<-array(dim=c(n,k,nss))
+for(i in 1:nss) { PZ[,,i]<-as.matrix(Z[ ((i-1)*n+1):(i*n) ,])  }
+
+PZ<-PZ[,,-(1:round(nss/2))]     #drop first half for burn in
+
+#find posterior mean of Z %*% t(Z)
+ZTZ<-matrix(0,n,n)
+for(i in 1:dim(PZ)[3] ) { ZTZ<-ZTZ+PZ[,,i]%*%t(PZ[,,i]) }
+ZTZ<-ZTZ/dim(PZ)[3]
+
+#a configuration that approximates posterior mean of ZTZ
+tmp<-eigen(ZTZ)
+Z.pm<-tmp[% vec %][,1:k]%*%sqrt(diag(tmp[% val %][1:k]))
+
+#now transform each sample Z to a common orientation
+for(i in 1:dim(PZ)[3] ) { PZ[,,i]<-proc.rr(PZ[,,i],Z.pm) }
+
+#
+# a two dimensional plot of "mean" latent locations 
+# and marginal confidence regions
+#
+if(k==2) {     
+
+    r<-atan2(Z.pm[,2],Z.pm[,1])
+    r<-r+abs(min(r))
+    r<-r/max(r)
+    g<-1-r
+    b<-(Z.pm[,2]^2+Z.pm[,1]^2)
+    b<-b/max(b)
+
+    par(mfrow=c(1,1))
+    plot(Z.pm[,1],Z.pm[,2],xlab="",ylab="",type="n",xlim=range(PZ[,1,])
+         ylim=range(PZ[,2,]))
+    abline(h=0,lty=2);abline(v=0,lty=2)
+
+    for(i in 1:n) { points( PZ[i,1,],PZ[i,2,],pch=46,col=rgb(r[i],g[i],b[i]) ) }
+    [% SET labels = [] %]
+    [% FOREACH id IN samples -%]
+       [% labels.push("'" _ id _ "'") -%]
+    [% END -%]
+    text(Z.pm[,1],Z.pm[,2], cex = 0.3, labels=c([% labels.join(',') %]))   #add labels here
+}
+
+postscript(“Zgraph3.eps", width = 12, height = 17, horizontal = FALSE,onefile = FALSE, paper = "special", colormodel = "cmyk",family = "Courier")"
+EOF
+}
+
+__END__
     # first part is to run the SNA analysis
     open (R1, ">sna.R") || die "Cannot open sna.R for writing\n";
 
@@ -237,3 +374,4 @@ sub main {
 
     my $cmd2 = `R CMD BATCH --slave plot.R`;
 }
+

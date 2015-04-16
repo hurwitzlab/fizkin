@@ -8,34 +8,45 @@
 #
 # --------------------------------------------------
 
-#set -ux
-
+set -u
 source ./config.sh
 export SOURCE_DIR="$FASTA_DIR"
 export OUT_DIR="$JELLYFISH_DIR"
+export STEP_SIZE=100
 export CWD="$PWD"
 
 # --------------------------------------------------
 
 PROG=$(basename "$0" ".sh")
-STDERR_DIR="$CWD/err/$PROG"
 STDOUT_DIR="$CWD/out/$PROG"
 
-init_dirs "$STDERR_DIR" "$STDOUT_DIR" "$OUT_DIR"
+init_dirs "$STDOUT_DIR" 
 
-export FILES_LIST="$SOURCE_DIR/files-list"
+if [[  ! -d $KMER_DIR ]]; then
+  mkdir -p $KMER_DIR
+fi
 
-cd "$SOURCE_DIR"
+if [[  ! -d $OUT_DIR ]]; then
+  mkdir -p $OUT_DIR
+fi
 
-find . -name \*.fa | sed "s/^\.\///" > $FILES_LIST
+export FILES_LIST="$HOME/${PROG}.in"
+
+find $SOURCE_DIR -name \*.fa > $FILES_LIST
 
 NUM_FILES=$(lc $FILES_LIST)
 
 echo Found \"$NUM_FILES\" files in \"$SOURCE_DIR\"
 
-if [ -z $NUM_FILES ] || [ $NUM_FILES -lt 1 ]; then
-    echo Nothing to do!
+if [ $NUM_FILES -lt 1 ]; then
+  echo Nothing to do.
+  exit 1
+fi
+
+JOB=$(qsub -N jf_self -J 1-$NUM_FILES:$STEP_SIZE -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,SOURCE_DIR,MER_SIZE,FILES_LIST,STEP_SIZE,JELLYFISH,KMER_DIR,OUT_DIR $SCRIPT_DIR/jellyfish-count.sh)
+
+if [ $? -eq 0 ]; then
+  echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Pinne kanam.
 else
-    JOB_ID=`qsub -N jf_self -J 1-$NUM_FILES -e "$STDERR_DIR" -o "$STDOUT_DIR" -v SCRIPT_DIR,SOURCE_DIR,MER_SIZE,FILES_LIST,JELLYFISH,KMER_DIR,OUT_DIR $SCRIPT_DIR/jellyfish-count.sh`
-    echo Submitted \"$JOB_ID\" for you.  Shalom.
+  echo -e "\nError submitting job\n$JOB\n"
 fi

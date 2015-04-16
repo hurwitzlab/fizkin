@@ -7,8 +7,8 @@ use warnings;
 use feature 'say';
 use autodie;
 use Cwd 'cwd';
-use File::Basename qw(basename fileparse);
-use File::Path;
+use File::Basename qw(basename fileparse dirname);
+use File::Path qw(make_path);
 use File::Spec::Functions;
 use Getopt::Long;
 use Pod::Usage;
@@ -66,7 +66,12 @@ sub main {
             exit 0;
         }
 
-       open $kmer_fh, '>', $out;
+        my $dir = dirname($out);
+        if (!-d $dir) {
+            make_path($dir);
+        }
+
+        open $kmer_fh, '>', $out;
     }
 
     my $locate_fh;

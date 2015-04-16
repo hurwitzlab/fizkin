@@ -10,7 +10,7 @@
 
 set -u
 source ./config.sh
-INPUT_DIR="$SCREENED_DIR"
+INPUT_DIR="$FASTA_DIR"
 export SUFFIX_DIR="$JELLYFISH_DIR"
 export STEP_SIZE=90
 
@@ -18,18 +18,21 @@ export STEP_SIZE=90
 
 CWD=$PWD
 PROG=$(basename $0 ".sh")
-STDERR_DIR="$CWD/err/$PROG"
 STDOUT_DIR="$CWD/out/$PROG"
-JOB_INFO_DIR="$CWD/job-info/$PROG"
 
-init_dirs "$STDERR_DIR" "$STDOUT_DIR"
+init_dirs "$STDOUT_DIR"
+
+if [[ ! -d "$INPUT_DIR" ]]; then
+  echo INPUT_DIR \"$INPUT_DIR\" does not exist
+  exit 1
+fi
 
 if [[ ! -d "$MODE_DIR" ]]; then
-    mkdir "$MODE_DIR"
+  mkdir "$MODE_DIR"
 fi
 
 if [[ ! -d "$KMER_DIR" ]]; then
-    mkdir "$KMER_DIR"
+  mkdir "$KMER_DIR"
 fi
 
 #
@@ -44,8 +47,8 @@ NUM_INPUT_FILES=$(lc $INPUT_FILES)
 echo Found \"$NUM_INPUT_FILES\" files in \"$INPUT_DIR\"
 
 if [ $NUM_INPUT_FILES -lt 1 ]; then
-    echo Nothing to do.
-    exit 1
+  echo Nothing to do.
+  exit 1
 fi
 
 #
@@ -60,39 +63,45 @@ NUM_JF_FILES=$(lc $JELLYFISH_FILES)
 echo Found \"$NUM_JF_FILES\" indexes in \"$JELLYFISH_DIR\"
 
 if [ $NUM_JF_FILES -lt 1 ]; then
-    echo Nothing to do.
-    exit 1
+  echo Nothing to do.
+  exit 1
 fi
 
 #
 # Pair up the FASTA/Jellyfish files
 #
-export FILES_LIST="${INPUT_DIR}/files-list"
+if [ $NUM_JF_FILES -ne $NUM_INPUT_FILES ]; then
+  echo Different number of Jellyfish/FASTA files, quitting.
+  exit 1
+fi
+
+export FILES_LIST="${HOME}/${PROG}.in"
+
 if [ -e $FILES_LIST ]; then
-    rm -f $FILES_LIST 
+  rm -f $FILES_LIST 
 fi
 
 while read FASTA; do
-    while read SUFFIX; do
-        echo "$FASTA $SUFFIX" >> $FILES_LIST
-    done < $JELLYFISH_FILES
+  while read SUFFIX; do
+    echo "$FASTA $SUFFIX" >> $FILES_LIST
+  done < $JELLYFISH_FILES
 done < $INPUT_FILES
 
 NUM_PAIRS=$(lc $FILES_LIST)
 
 if [ $NUM_PAIRS -lt 1 ]; then
-    echo Could not generate file pairs
-    exit 1
+  echo Could not generate file pairs
+  exit 1
 fi
 
 echo There are \"$NUM_PAIRS\" pairs to process 
 
-JOB=$(qsub -N "self-qry" -J 1-$NUM_PAIRS:$STEP_SIZE -e "$STDERR_DIR" -o "$STDOUT_DIR" -v SCRIPT_DIR,SUFFIX_DIR,MODE_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST,STEP_SIZE $SCRIPT_DIR/pairwise-cmp.sh)
+JOB=$(qsub -N "self-qry" -J 1-$NUM_PAIRS:$STEP_SIZE -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,SUFFIX_DIR,MODE_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST,STEP_SIZE $SCRIPT_DIR/pairwise-cmp.sh)
 
 if [ $? -eq 0 ]; then
-    echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Sayonara.
+  echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Adios.
 else
-    echo -e "\nError submitting job\n$JOB\n"
+  echo -e "\nError submitting job\n$JOB\n"
 fi
 
 rm $JELLYFISH_FILES

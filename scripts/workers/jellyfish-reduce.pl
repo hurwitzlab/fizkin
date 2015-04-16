@@ -113,22 +113,24 @@ sub main {
 
 # --------------------------------------------------
 sub mode {
-    my @vals = grep { $_ > 0 } @_ or return;
+    my @vals = grep { $_ > 0 } @_;
     my $mode = 0;
 
-    if (scalar @vals == 1) {
-        $mode = shift @vals;
-    }
-    else {
-        my @distinct = uniq(@vals);
-
-        if (scalar @distinct == 1) {
-            $mode = shift @distinct;
+    if (@vals) {
+        if (scalar @vals == 1) {
+            $mode = shift @vals;
         }
         else {
-            my $stats = Statistics::Descriptive::Discrete->new;
-            $stats->add_data(@vals);
-            return $stats->mode();
+            my @distinct = uniq(@vals);
+
+            if (scalar @distinct == 1) {
+                $mode = shift @distinct;
+            }
+            else {
+                my $stats = Statistics::Descriptive::Discrete->new;
+                $stats->add_data(@vals);
+                return $stats->mode();
+            }
         }
     }
 

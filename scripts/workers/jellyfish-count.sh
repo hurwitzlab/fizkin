@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#PBS -W group_list=bhurwitz
+#PBS -W group_list=gwatts
 #PBS -q standard
 #PBS -l jobtype=serial
 #PBS -l select=1:ncpus=4:mem=10gb
@@ -11,6 +11,8 @@
 
 # Expects: SOURCE_DIR, MER_SIZE, FILES_LIST, JELLYFISH, OUT_DIR 
 
+set -u
+
 echo Started $(date)
 
 echo Host $(hostname)
@@ -18,55 +20,48 @@ echo Host $(hostname)
 source /usr/share/Modules/init/bash
 
 if [ -z $SCRIPT_DIR ]; then
-    echo Missing SCRIPT_DIR
-    exit 1
+  echo Missing SCRIPT_DIR
+  exit 1
 fi
 
 KMERIZER="$SCRIPT_DIR/kmerizer.pl"
 if [[ ! -e $KMERIZER ]]; then
-    echo Cannot find kmerizer \"$KMERIZER\"
-    exit 1
+  echo Cannot find kmerizer \"$KMERIZER\"
+  exit 1
 fi
 
 THREADS=4
 HASH_SIZE="100M"
+TMP_FILES=$(mktemp)
+HEAD=$((${PBS_ARRAY_INDEX:=1} + ${STEP_SIZE:=1}))
 
-FILES=$(mktemp)
+head -n $HEAD $FILES_LIST | tail -n ${STEP_SIZE:=1} > $TMP_FILES
 
-if [ -z "$PBS_ARRAY_INDEX" ]; then
-    cp $FILES_LIST $FILES
-else
-    head -n +${PBS_ARRAY_INDEX} $FILES_LIST | tail -n 1 > $FILES
-fi
+NUM_FILES=$(wc -l $TMP_FILES | cut -d ' ' -f 1)
 
-NUM_FILES=$(wc -l $FILES | cut -d ' ' -f 1)
-
-echo Processing \"$NUM_FILES\" files in \"$SOURCE_DIR\"
+echo Found \"$NUM_FILES\" files to process
 
 cd "$SOURCE_DIR"
 
 i=0
 while read FILE; do
-    OUT_FILE="$OUT_DIR/$FILE.jf"
+  BASENAME=$(basename $FILE)
+  JF_FILE="$OUT_DIR/${BASENAME}.jf"
 
-    if [ -e "$OUT_FILE" ]; then
-        rm -f "$OUT_FILE";
-    fi
+  let i++
+  printf "%5d: %s\n" $i $BASENAME
 
-    let i++
-    printf "%5d: %s\n" $i $FILE
+  if [ -e "$JF_FILE" ]; then
+    rm -f "$JF_FILE";
+  fi
 
-#    $JELLYFISH count -C -m $MER_SIZE -s $HASH_SIZE -t $THREADS \
-#      -o $OUT_FILE $FILE
+  $JELLYFISH count -m $MER_SIZE -s $HASH_SIZE -t $THREADS -o $JF_FILE $FILE
 
-    $JELLYFISH count -m $MER_SIZE -s $HASH_SIZE -t $THREADS \
-      -o $OUT_FILE $FILE
+  BASENAME=$(basename $FILE)
+  KMER_FILE="$KMER_DIR/${BASENAME}.kmers"
+  LOC_FILE="$KMER_DIR/${BASENAME}.loc"
 
-    BASENAME=$(basename $FILE)
-    KMER_FILE="$KMER_DIR/${BASENAME}.kmers"
-    LOC_FILE="$KMER_DIR/${BASENAME}.loc"
-
-    $KMERIZER -q -i "$FILE" -o "$KMER_FILE" -l "$LOC_FILE" -k "$MER_SIZE"
-done < $FILES
+  $KMERIZER -q -i "$FILE" -o "$KMER_FILE" -l "$LOC_FILE" -k "$MER_SIZE"
+done < $TMP_FILES
 
 echo Finished $(date)

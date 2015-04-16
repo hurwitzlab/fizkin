@@ -2,7 +2,7 @@
 
 # self-pairwise.cmp.sh
 
-#PBS -W group_list=bhurwitz
+#PBS -W group_list=gwatts
 #PBS -q standard
 #PBS -l jobtype=serial
 #PBS -l select=1:ncpus=4:mem=10gb

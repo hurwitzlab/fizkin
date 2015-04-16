@@ -15,42 +15,48 @@
 #
 # --------------------------------------------------
 
+set -u
 source ./config.sh
-
 export CWD="$PWD"
+export STEP_SIZE=20
 
 PROG=$(basename $0 ".sh")
-STDERR_DIR="$CWD/err/$PROG"
 STDOUT_DIR="$CWD/out/$PROG"
 
-init_dirs "$ERR_DIR" "$OUT_DIR" "$FASTQ_DIR" "$FASTA_DIR"
+init_dirs "$STDOUT_DIR" 
 
 if [[ ! -d $RAW_DIR ]]; then
-    echo "Bad RAW_DIR ($RAW_DIR)"
-    exit 0
+  echo "Bad RAW_DIR ($RAW_DIR)"
+  exit 0
 fi
 
-echo "Working in RAW_DIR ($RAW_DIR)"
-cd $RAW_DIR
-NUM_GZIP=$(find $RAW_DIR -name \*gz | wc -l)
-if [ $NUM_GZIP -gt 0 ]; then
-    echo Gunzipping $NUM_GZIP files
-    $GUNZIP *.gz
+if [[ ! -d $FASTQ_DIR ]]; then
+  mkdir -p $FASTQ_DIR
 fi
 
-#
-# NB: send the "R1" file and use the name to get the "R2" 
-# file (if it exists)
-#
-i=0
-for file in *_R1_*.fastq; do
-    i=$((i+1))
+if [[ ! -d $FASTA_DIR ]]; then
+  mkdir -p $FASTA_DIR
+fi
 
-    export FILE=$(basename $file)
+echo RAW_DIR \"$RAW_DIR\"
 
-    JOB=$(qsub -v SCRIPT_DIR,RAW_DIR,BIN_DIR,FILE,FASTQ_DIR,FASTA_DIR -N qc_fastq -e "$STDERR_DIR/$FILE" -o "$STDOUT_DIR/$FILE" $SCRIPT_DIR/qc_fastq.sh)
+export FILES_LIST="${HOME}/${PROG}.in"
 
-    printf '%5d: %15s %-30s\n' $i $JOB $FILE
-done
+find $RAW_DIR -name \*_R1_\* > $FILES_LIST
 
-echo Submitted $i jobs.  Buenos dias!
+NUM_FILES=$(lc $FILES_LIST)
+
+echo Found \"$NUM_FILES\" input files
+
+if [ $NUM_FILES -lt 1 ]; then
+  echo Nothing to do.
+  exit 1
+fi
+
+JOB=$(qsub -J 1-$NUM_FILES:$STEP_SIZE -v STEP_SIZE,SCRIPT_DIR,RAW_DIR,BIN_DIR,FILES_LIST,FASTQ_DIR,FASTA_DIR -N qc_fastq -j oe -o "$STDOUT_DIR" $SCRIPT_DIR/qc_fastq.sh)
+
+if [ $? -eq 0 ]; then
+  echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Sayonara.
+else
+  echo -e "\nError submitting job\n$JOB\n"
+fi

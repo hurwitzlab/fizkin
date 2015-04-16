@@ -12,13 +12,14 @@
 # Some constants
 #
 export MER_SIZE=20
+export MIN_SEQ_LENGTH=50
 export QSTAT="/usr/local/bin/qstat_local"
 export GUNZIP="/bin/gunzip"
 
 #
 # The main checkout
 #
-PROJECT_DIR="/rsgrps/bhurwitz/kyclark/mouse"
+PROJECT_DIR="/rsgrps/bhurwitz/kyclark/fizkin"
 
 #
 # Where we can find the worker scripts
@@ -42,7 +43,7 @@ export HOST_DIR="/rsgrps/bhurwitz/hurwitzlab/data/reference/mouse_genome/2014111
 #
 # Where to put the results of our steps
 #
-export HOST_JELLYFISH_DIR="$DATA_DIR/jellyfish/mouse"
+export HOST_JELLYFISH_DIR="/rsgrps/bhurwitz/hurwitzlab/data/jellyfish/mouse/"
 
 # 
 # Where we can find all our custom binaries (e.g., jellyfish)

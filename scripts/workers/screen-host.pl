@@ -46,7 +46,11 @@ sub main {
     my @files    = @ARGV or pod2usage('No input files');
     my $host_id  = get_host_ids($host_file);
     my $file_num = 0;
+    my $seen     = 0;
     my $removed  = 0;
+
+    printf "Using %s host ids from '%s'\n", 
+        scalar keys %$host_id, basename($host_file);
 
     for my $file (@files) {
         printf "%5d: %s\n", ++$file_num, basename($file); 
@@ -58,6 +62,8 @@ sub main {
         while (my $rec = <$in>) {
             chomp $rec;
             next unless $rec;
+
+            $seen++;
 
             my ($id, @seq) = split /\n/, $rec;
 
@@ -73,11 +79,12 @@ sub main {
         close $out;
     }
 
-    printf "Done, processed %s file%s, removed %s read%s\n",
+    printf "Done, processed %s file%s, removed %s read%s of %s seen\n",
         $file_num,
         $file_num == 1 ? '' : 's',
         $removed,
         $removed == 1 ? '' : 's',
+        $seen,
     ;
 }
 
