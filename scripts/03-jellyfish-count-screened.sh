@@ -10,7 +10,7 @@
 
 set -u
 source ./config.sh
-export SOURCE_DIR="$FASTA_DIR"
+export SOURCE_DIR="$SCREENED_DIR"
 export OUT_DIR="$JELLYFISH_DIR"
 export STEP_SIZE=100
 export CWD="$PWD"
