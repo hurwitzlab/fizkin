@@ -99,16 +99,17 @@ while read SUFFIX; do
   # Note: no "-o" output file as we only care about the $HOST file
   #
   $JELLYFISH query -i "$SUFFIX" < "$KMER_FILE" | \
-    $SCRIPT_DIR/jellyfish-reduce.pl -l "$LOC_FILE" -u $HOST --mode-min 1
+    $SCRIPT_DIR/jellyfish-reduce.pl -l "$LOC_FILE" -u $HOST --mode-min 2
 done < "$SUFFIX_LIST"
 
-echo Done processed \"$i\" suffix files
+echo Done querying/reducing to \"$i\" suffix files
 
-echo HOST file size \"$(ls -l $HOST)\"
+echo Screening with \"$HOST\"
 
 $SCRIPT_DIR/screen-host.pl -h "$HOST" -o "$SCREENED_DIR" $FASTA
 
+echo Removing temp files
 rm "$SUFFIX_LIST"
 rm "$HOST"
 
-echo Ended $(date)
+echo Finished $(date)
