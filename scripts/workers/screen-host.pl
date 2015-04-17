@@ -57,7 +57,7 @@ sub main {
 
         local $/ = '>';
         open my $in , '<', $file;
-        open my $out, '>', catfile($out_dir, basename($file) . '.screened');
+        open my $out, '>', catfile($out_dir, basename($file));
 
         while (my $rec = <$in>) {
             chomp $rec;
@@ -79,11 +79,11 @@ sub main {
         close $out;
     }
 
-    printf "Done, processed %s file%s, removed %s read%s of %s seen\n",
+    printf "Done, processed %s file%s, removed %s%% (%s of %s)\n",
         $file_num,
         $file_num == 1 ? '' : 's',
+        int($removed/$seen * 100),
         $removed,
-        $removed == 1 ? '' : 's',
         $seen,
     ;
 }
