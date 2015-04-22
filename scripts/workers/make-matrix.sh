@@ -29,6 +29,6 @@ fi
 
 $SCRIPT_DIR/make-matrix.pl -d $MODE_DIR > $MATRIX_FILE
 
-$SCRIPT_DIR/sna.pl -s $MATRIX_FILE -o $MATRIX_DIR 
+#$SCRIPT_DIR/sna.pl -s $MATRIX_FILE -o $MATRIX_DIR 
 
 echo Finished $(date)

@@ -42,7 +42,7 @@ echo RAW_DIR \"$RAW_DIR\"
 
 export FILES_LIST="${HOME}/${PROG}.in"
 
-find $RAW_DIR -name \*_R1_\* > $FILES_LIST
+find $RAW_DIR -name DNA\* > $FILES_LIST
 
 NUM_FILES=$(lc $FILES_LIST)
 

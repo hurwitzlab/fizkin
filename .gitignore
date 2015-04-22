@@ -31,3 +31,4 @@ inc
 META.yml
 MYMETA.*
 *.params
+*.Rout

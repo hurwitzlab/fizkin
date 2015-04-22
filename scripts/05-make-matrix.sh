@@ -17,7 +17,7 @@ CWD=$PWD
 PROG=$(basename $0 ".sh")
 STDOUT_DIR="$CWD/out/$PROG"
 
-init_dirs "$STDERR_DIR" "$STDOUT_DIR" "$MATRIX_DIR"
+init_dirs "$STDOUT_DIR" "$MATRIX_DIR"
 
 JOB=$(qsub -N "mk-matrix" -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,MODE_DIR,MATRIX_DIR $SCRIPT_DIR/make-matrix.sh)
 

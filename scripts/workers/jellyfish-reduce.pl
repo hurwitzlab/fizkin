@@ -77,15 +77,15 @@ sub main {
         close $tmp;
     }
 
-    my $count;
+    my $count = 0;
     READ:
     while (my $loc = <$loc_fh>) {
         chomp($loc);
         my ($read_id, $n_kmers) = split /\t/, $loc;
+        my @vals = take($n_kmers, $in) or last;
 
         next READ if $unique_file && defined $seen{ $read_id };
 
-        my @vals = take($n_kmers, $in) or last;
         my $mode = mode(@vals);
 
         if ($mode >= $mode_min) {
@@ -98,6 +98,10 @@ sub main {
             #        : $read_id;
             #}
         }
+    }
+
+    if (my @leftover = <$in>) {
+        die "Error, you still have input but no more locations.\n";
     }
 
     if ($out_fh) {
