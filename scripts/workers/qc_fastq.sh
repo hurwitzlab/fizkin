@@ -21,19 +21,26 @@
 module load R
 # --------------------------------------------------
 
+COMMON="$SCRIPT_DIR/common.sh"
+
+if [ -e $COMMON ]; then
+  . "$COMMON"
+else
+  echo Missing common \"$COMMON\"
+  exit 1
+fi
+
 set -u
 
 echo Host \"$(hostname)\"
 
 echo Started $(date)
 
-HEAD=$((${PBS_ARRAY_INDEX:=1} + ${STEP_SIZE:=1}))
-
 TMP_FILES=$(mktemp)
 
-head -n $HEAD $FILES_LIST | tail -n ${STEP_SIZE:=1} > $TMP_FILES
+get_lines $FILES_LIST $TMP_FILES $PBS_ARRAY_INDEX $STEP_SIZE
 
-NUM_FILES=$(wc -l $TMP_FILES | cut -d ' ' -f 1)
+NUM_FILES=$(lc $TMP_FILES)
 
 echo Found \"$NUM_FILES\" files to process
 
@@ -47,11 +54,13 @@ while read FILE; do
     rm -f $F
   done
 
-  for ACTION in analysis dynamictrim; do
-    $BIN_DIR/SolexaQA++ $ACTION -d $FASTQ_DIR $FILE
-  done
-
   TRIMMED_FILE=$FASTQ_DIR/${BASENAME}.trimmed
+
+  if [[ ! -e $TRIMMED_FILE ]]; then
+    for ACTION in analysis dynamictrim; do
+      $BIN_DIR/SolexaQA++ $ACTION -d $FASTQ_DIR $FILE
+    done
+  fi
 
   if [[ ! -s $TRIMMED_FILE ]]; then
     echo Failed to create trimmed file \"$TRIMMED_FILE\"
