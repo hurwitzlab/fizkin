@@ -18,19 +18,19 @@ sub main {
     my $loc_file    =  '';
     my $in_file     = '-';
     my $out_file    =  '';
-    my $show_mode   =   1;
     my $mode_min    =   0;
     my $unique_file =  '';
+    my $read_file   =  '';
     my ($help, $man_page);
     GetOptions(
-        'l|loc=s'      => \$loc_file,
-        'i|in:s'       => \$in_file,
-        'o|out:s'      => \$out_file,
-        'm|show-mode!' => \$show_mode,
-        'u|unique:s'   => \$unique_file,
-        'mode-min:i'   => \$mode_min,
-        'help'         => \$help,
-        'man'          => \$man_page,
+        'l|loc=s'       => \$loc_file,
+        'i|in:s'        => \$in_file,
+        'o|out:s'       => \$out_file,
+        'u|unique:s'    => \$unique_file,
+        'r|read-file:s' => \$read_file,
+        'mode-min:i'    => \$mode_min,
+        'help'          => \$help,
+        'man'           => \$man_page,
     ) or pod2usage(2);
 
     if ($help || $man_page) {
@@ -77,6 +77,13 @@ sub main {
         close $tmp;
     }
 
+    my $read_fh;
+    if ($read_file) {
+        my $tmp_dir = dirname($read_file);
+        make_path($tmp_dir) unless -d $tmp_dir;
+        open $read_fh, '>', $read_file;
+    }
+
     my $count = 0;
     READ:
     while (my $loc = <$loc_fh>) {
@@ -92,11 +99,9 @@ sub main {
             $count++;
             $seen{ $read_id }++ if $unique_file;
 
-            #if ($out_fh) {
-            #    say $out_fh ($show_mode) 
-            #        ? join("\t", $read_id, $mode) 
-            #        : $read_id;
-            #}
+            if ($read_fh) {
+                say $read_fh join("\t", $read_id, $mode) 
+            }
         }
     }
 
@@ -165,9 +170,8 @@ Options:
 
   -i|-in          Path to kmers/counts or '-' for STDIN (default STDIN)
   -o|--out        Path to output file or '-' for STDOUT (default nothing)
-  -u|--unique     Name of the file to read/write unique readIds 
-  -m|--show-mode  Show the mode value (default true)
-                  Use '--no-m' or '--no-show-mode' to negate
+  -u|--unique     Name of the file to read/write unique read IDs
+  -r|--read-file  Name of the file to write the passing read IDs
 
   --help          Show brief help and exit
   --man           Show full documentation
