@@ -10,7 +10,7 @@
 
 set -u
 source ./config.sh
-INPUT_DIR="$SCREENED_DIR"
+INPUT_DIR="$FASTA_DIR"
 export SUFFIX_DIR="$JELLYFISH_DIR"
 export STEP_SIZE=90
 
@@ -21,11 +21,6 @@ PROG=$(basename $0 ".sh")
 STDOUT_DIR="$CWD/out/$PROG"
 
 init_dirs "$STDOUT_DIR"
-
-if [[ ! -d "$INPUT_DIR" ]]; then
-  echo INPUT_DIR \"$INPUT_DIR\" does not exist
-  exit 1
-fi
 
 if [[ ! -d "$MODE_DIR" ]]; then
   mkdir "$MODE_DIR"
@@ -40,7 +35,18 @@ fi
 #
 INPUT_FILES=$(mktemp)
 
-find $INPUT_DIR -type f > $INPUT_FILES
+if [ -n "$1" ] && [ -e "$1" ]; then
+  echo Taking input files from \"$1\"
+  cp $1 $INPUT_FILES
+else
+  if [[ ! -d "$INPUT_DIR" ]]; then
+    echo INPUT_DIR \"$INPUT_DIR\" does not exist
+    exit 1
+  fi
+
+  echo Seaching for input files in \"$INPUT_DIR\"
+  find $INPUT_DIR -type f > $INPUT_FILES
+fi
 
 NUM_INPUT_FILES=$(lc $INPUT_FILES)
 
@@ -56,7 +62,11 @@ fi
 #
 JELLYFISH_FILES=$(mktemp)
 
-find $JELLYFISH_DIR -name \*.jf > $JELLYFISH_FILES
+while read FASTA; do
+    find $JELLYFISH_DIR -name $(basename $FASTA).jf >> $JELLYFISH_FILES
+done < $INPUT_FILES
+
+#find $JELLYFISH_DIR -name \*.jf > $JELLYFISH_FILES
 
 NUM_JF_FILES=$(lc $JELLYFISH_FILES)
 
@@ -96,7 +106,7 @@ fi
 
 echo There are \"$NUM_PAIRS\" pairs to process 
 
-JOB=$(qsub -N "self-qry" -J 1-$NUM_PAIRS:$STEP_SIZE -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,SUFFIX_DIR,MODE_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST,STEP_SIZE $SCRIPT_DIR/pairwise-cmp.sh)
+JOB=$(qsub -N "pair-cmp" -J 1-$NUM_PAIRS:$STEP_SIZE -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,SUFFIX_DIR,MODE_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST,STEP_SIZE $SCRIPT_DIR/pairwise-cmp.sh)
 
 if [ $? -eq 0 ]; then
   echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Adios.
