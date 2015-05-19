@@ -75,7 +75,7 @@ if [ $NUM_JF_FILES -ne $NUM_INPUT_FILES ]; then
   exit 1
 fi
 
-export FILES_LIST="${HOME}/${PROG}.in"
+export FILES_LIST="${HOME}/$$.in"
 
 if [ -e $FILES_LIST ]; then
   rm -f $FILES_LIST 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#PBS -W group_list=gwatts
+#PBS -W group_list=bhurwitz
 #PBS -q standard
 #PBS -l jobtype=serial
 #PBS -l select=1:ncpus=2:mem=5gb
@@ -69,11 +69,16 @@ while read FILE; do
   
   CLIPPED_FILE=${TRIMMED_FILE}.clipped
 
-  $BIN_DIR/fastx_clipper -v -l ${MIN_SEQ_LENGTH:=50} \
+  $BIN_DIR/fastx_clipper -v -l ${MIN_SEQ_LENGTH:=52} \
     -i $TRIMMED_FILE -o $CLIPPED_FILE
 
-  if [[ ! -s $CLIPPED_FILE ]]; then
+  if [[ ! -e $CLIPPED_FILE ]]; then
     echo Failed to create clipped file \"$CLIPPED_FILE\"
+    continue
+  fi
+
+  if [[ ! -s $CLIPPED_FILE ]]; then
+    echo Created zero-length clipped file \"$CLIPPED_FILE\"
     continue
   fi
 

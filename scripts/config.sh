@@ -19,7 +19,7 @@ export GUNZIP="/bin/gunzip"
 #
 # The main checkout
 #
-PROJECT_DIR="/rsgrps/bhurwitz/kyclark/fizkin"
+PROJECT_DIR="/rsgrps/bhurwitz/kyclark/mouse"
 
 #
 # Where we can find the worker scripts
@@ -38,12 +38,14 @@ export RAW_DIR="/rsgrps/bhurwitz/hurwitzlab/data/raw/Doetschman_20111007/all"
 #
 # Where to find the host genome for screening
 #
-export HOST_DIR="/rsgrps/bhurwitz/hurwitzlab/data/reference/mouse_genome/20141111"
+export HOST_DIR="/rsgrps/bhurwitz/hurwitzlab/data/reference/mouse_genome/20141111 /rsgrps/bhurwitz/hurwitzlab/data/reference/soybean /rsgrps/bhurwitz/hurwitzlab/data/reference/yeast /rsgrps/bhurwitz/hurwitzlab/data/reference/wheat /rsgrps/bhurwitz/hurwitzlab/data/reference/medicago /rsgrps/bhurwitz/hurwitzlab/data/reference/zea_mays"
 
 #
 # Where to put the results of our steps
 #
 export HOST_JELLYFISH_DIR="/rsgrps/bhurwitz/hurwitzlab/data/jellyfish/mouse/"
+
+export HOST_BOWTIE_DIR="/rsgrps/bhurwitz/hurwitzlab/data/bowtie"
 
 # 
 # Where we can find all our custom binaries (e.g., jellyfish)

@@ -42,7 +42,14 @@ echo RAW_DIR \"$RAW_DIR\"
 
 export FILES_LIST="${HOME}/${PROG}.in"
 
-find $RAW_DIR -name DNA\* > $FILES_LIST
+#
+# allow determination of files from command line
+#
+if [ -n $1 ] && [ -s $1 ]; then
+  cat $1 > $FILES_LIST
+else
+  find $RAW_DIR -name DNA\* > $FILES_LIST
+fi
 
 NUM_FILES=$(lc $FILES_LIST)
 

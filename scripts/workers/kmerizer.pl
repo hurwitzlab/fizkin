@@ -57,7 +57,8 @@ sub main {
     my $kmer_fh;
     if ($out eq '-') {
        $kmer_fh = \*STDOUT;
-    } else {
+    } 
+    else {
         if ((-e $out && -s _) && !$clobber) {
             $report->(
                 sprintf "Out file (%s) exists, no-clobber is on, exiting.\n",

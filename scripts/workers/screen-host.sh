@@ -2,7 +2,7 @@
 
 # launch-jellyfish-query.sh
 
-#PBS -W group_list=gwatts
+#PBS -W group_list=bhurwitz
 #PBS -q standard
 #PBS -l jobtype=serial
 #PBS -l select=1:ncpus=2:mem=10gb
