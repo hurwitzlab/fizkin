@@ -38,7 +38,7 @@ export RAW_DIR="/rsgrps/bhurwitz/hurwitzlab/data/raw/Doetschman_20111007/all"
 #
 # Where to find the host genome for screening
 #
-export HOST_DIR="/rsgrps/bhurwitz/hurwitzlab/data/reference/mouse_genome/20141111 /rsgrps/bhurwitz/hurwitzlab/data/reference/soybean /rsgrps/bhurwitz/hurwitzlab/data/reference/yeast /rsgrps/bhurwitz/hurwitzlab/data/reference/wheat /rsgrps/bhurwitz/hurwitzlab/data/reference/medicago /rsgrps/bhurwitz/hurwitzlab/data/reference/zea_mays"
+export HOST_DIR="/rsgrps/bhurwitz/hurwitzlab/data/reference/mouse_genome/20141111 /rsgrps/bhurwitz/hurwitzlab/data/reference/soybean /rsgrps/bhurwitz/hurwitzlab/data/reference/yeast /rsgrps/bhurwitz/hurwitzlab/data/reference/wheat /rsgrps/bhurwitz/hurwitzlab/data/reference/medicago /rsgrps/bhurwitz/hurwitzlab/data/reference/zea_mays/v3"
 
 #
 # Where to put the results of our steps
@@ -58,6 +58,7 @@ export JELLYFISH="$BIN_DIR/jellyfish"
 #
 export FASTQ_DIR="$DATA_DIR/fastq"
 export FASTA_DIR="$DATA_DIR/fasta"
+export BT_ALIGNED_DIR="$DATA_DIR/bowtie-aligned"
 export SCREENED_DIR="$DATA_DIR/screened"
 export SUFFIX_DIR="$DATA_DIR/suffix"
 export KMER_DIR="$DATA_DIR/kmer"
