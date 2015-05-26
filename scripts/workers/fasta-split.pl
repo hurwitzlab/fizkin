@@ -49,6 +49,7 @@ sub main {
         make_path($out_dir);
     }
 
+    $max_size *= $BYTES_TO_MB;
     my @results = map { split_file($_, $out_dir, $max_size) } @files;
 }
 
@@ -61,7 +62,7 @@ sub split_file {
         return;
     }
 
-    if (-s $file < $max_size * $BYTES_TO_MB) {
+    if (-s $file < $max_size) {
         warn "File ($file) is OK\n";
         copy($file, $out_dir); 
         return;
@@ -91,7 +92,14 @@ sub split_file {
             $buffer = substr($buffer, $max_size);
 
             unless ($buffer =~ /^>/) {
-                $buffer = join("\n", $last_header . '-2', $buffer);
+                if ($last_header =~ /(.+)-part(\d+)$/) {
+                    $last_header = join('-part', $1, $2 + 1)
+                }
+                else {
+                    $last_header .= '-part2';
+                }
+
+                $buffer = join("\n", $last_header, $buffer);
             }
         }
     }
