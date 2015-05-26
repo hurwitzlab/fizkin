@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 use common::sense;
 use autodie;
@@ -23,7 +23,7 @@ sub main {
     GetOptions(
         'files=s'   => \$file_list,
         'out-dir=s' => \$out_dir,
-        'max:i'     => \$max_size,
+        'm|max:i'   => \$max_size,
         'help'      => \$help,
         'man'       => \$man_page,
     ) or pod2usage(2);
@@ -74,20 +74,18 @@ sub split_file {
 
     open my $in_fh, '<', $file;
     while (my $line = <$in_fh>) {
-        chomp $line;
-
         if ($line =~ /^>/) {
-            $last_header = $line;
+            chomp($last_header = $line);
         }
 
         $buffer .= $line;
 
-        if (length($buffer) > $max_size) {
+        if (length($buffer) >= $max_size) {
             write_out(
                 $out_dir,
                 $file,
                 $file_num++,
-                substr($buffer, 0, $max_size - 1) . "\n"
+                substr($buffer, 0, $max_size) . "\n"
             );
 
             $buffer = substr($buffer, $max_size);
@@ -98,8 +96,15 @@ sub split_file {
         }
     }
 
-    if ($buffer) {
-        write_out($out_dir, $file, $file_num, $buffer);
+    while ($buffer) {
+        write_out(
+            $out_dir, 
+            $file, 
+            $file_num++, 
+            substr($buffer, 0, $max_size) . "\n"
+        );
+
+        $buffer = substr($buffer, $max_size);
     }
 
     close $in_fh;
@@ -109,9 +114,9 @@ sub split_file {
 sub write_out {
     my ($dir, $file, $num, $contents) = @_;
 
-    my ($basename, $path, $suffix) = fileparse($file);
+    my ($basename, $path, $suffix) = fileparse($file, qr/\.[^.]*/);
 
-    my $out_name = join('-', $basename, $num, $suffix);
+    my $out_name = join('-', $basename, $num) . $suffix;
 
     open my $out_fh, '>', catdir($dir, $out_name);
 
@@ -132,21 +137,19 @@ fasta-split.pl - a script
 
 =head1 SYNOPSIS
 
-  fasta-split.pl 
+  fasta-split.pl -f input.fa -o /out/dir --max 100 
 
 Options:
 
-  --help   Show brief help and exit
-  --man    Show full documentation
+  -f|--files    Comma-separated list of files to split
+  -o|--out-dir  Path to write split files
+  -m|--max      Max size in MB of the split files
+  --help        Show brief help and exit
+  --man         Show full documentation
 
 =head1 DESCRIPTION
 
-Describe what the script does, what input it expects, what output it
-creates, etc.
-
-=head1 SEE ALSO
-
-perl.
+Splits FASTA-formatted files by max size.  Will break sequences.
 
 =head1 AUTHOR
 
