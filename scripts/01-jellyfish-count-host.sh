@@ -47,7 +47,7 @@ if [ $COUNT -lt 1 ]; then
   exit 1
 fi
 
-JOB=$(qsub -N jf_host -j oe -o "$STDOUT_DIR" -J 1-$COUNT:$STEP_SIZE -v SCRIPT_DIR,STEP_SIZE,MER_SIZE,FILES_LIST,JELLYFISH,OUT_DIR,FASTA_SPLIT_DIR,KMERIZE_FILES $SCRIPT_DIR/jellyfish-count.sh)
+JOB=$(qsub -N jf_host -j oe -o "$STDOUT_DIR" -J 1-$COUNT:$STEP_SIZE -v SCRIPT_DIR,STEP_SIZE,MER_SIZE,FILES_LIST,JELLYFISH,OUT_DIR,FASTA_SPLIT_DIR,MAX_JELLYFISH_INPUT_SIZE,KMERIZE_FILES $SCRIPT_DIR/jellyfish-count.sh)
 
 if [ $? -eq 0 ]; then
   echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Aloha.

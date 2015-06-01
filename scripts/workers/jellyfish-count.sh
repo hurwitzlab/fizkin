@@ -55,7 +55,7 @@ echo Processing \"$NUM_FILES\" input files
 # Need to make sure none of these files are too large
 #
 TMP_CHECKED=$(mktemp)
-MAX_MB=200 
+MAX_MB=${MAX_JELLYFISH_INPUT_SIZE:-100}
 while read FILE; do
   SIZE=$(du -m "$FILE" | cut -f 1)
 
