@@ -21,6 +21,8 @@
 module load R
 # --------------------------------------------------
 
+set -u
+
 COMMON="$SCRIPT_DIR/common.sh"
 
 if [ -e $COMMON ]; then
@@ -29,8 +31,6 @@ else
   echo Missing common \"$COMMON\"
   exit 1
 fi
-
-set -u
 
 echo Host \"$(hostname)\"
 

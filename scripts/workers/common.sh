@@ -25,14 +25,5 @@ function get_lines() {
     exit 1
   fi
 
-  LC=$(lc $FILE)
-
-  HEAD=$((${START} + ${STEP} - 1))
-
-  if [ $HEAD -lt $LC ]; then
-    head -n $HEAD $FILE | tail -n $STEP > $OUT_FILE
-  else
-    TAIL=$(($LC - $START + 1))
-    tail -n $TAIL $FILE > $OUT_FILE
-  fi
+  awk "NR==$START,NR==$(($START + $STEP))" $FILE > $OUT_FILE
 }

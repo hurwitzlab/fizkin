@@ -43,7 +43,7 @@ export HOST_DIR="/rsgrps/bhurwitz/hurwitzlab/data/reference/mouse_genome/2014111
 #
 # Where to put the results of our steps
 #
-export HOST_JELLYFISH_DIR="/rsgrps/bhurwitz/hurwitzlab/data/jellyfish/mouse/"
+export HOST_JELLYFISH_DIR="$DATA_DIR/jellyfish/host"
 
 export HOST_BOWTIE_DIR="/rsgrps/bhurwitz/hurwitzlab/data/bowtie"
 
@@ -63,6 +63,7 @@ export SCREENED_DIR="$DATA_DIR/screened"
 export SUFFIX_DIR="$DATA_DIR/suffix"
 export KMER_DIR="$DATA_DIR/kmer"
 export JELLYFISH_DIR="$DATA_DIR/jellyfish"
+export FASTA_SPLIT_DIR="$DATA_DIR/fasta-split"
 export COUNT_DIR="$DATA_DIR/counts"
 export MODE_DIR="$DATA_DIR/modes"
 export MATRIX_DIR="$DATA_DIR/matrix"
