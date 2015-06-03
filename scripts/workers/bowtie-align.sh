@@ -1,16 +1,16 @@
 #!/bin/bash
 
-#PBS -W group_list=mbsulli
+#PBS -W group_list=bhurwitz
 #PBS -q standard
 #PBS -l jobtype=serial
 #PBS -l select=1:ncpus=4:mem=10gb
 #PBS -l walltime=24:00:00
 #PBS -l cput=24:00:00
-#PBS -M kyclark@email.arizona.edu
+#PBS -M scottdaniel@email.arizona.edu
 #PBS -m ea
 
 # Expects:
-# STEP_SIZE SCRIPT_DIR FILES_LIST BT_ALIGNED_DIR 
+# STEP_SIZE SCRIPT_DIR FILES_LIST BT_ALIGNED_DIR
 
 set -u
 
