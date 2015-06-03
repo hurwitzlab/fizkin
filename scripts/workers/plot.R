@@ -65,10 +65,10 @@ abline(h=0,lty=2);abline(v=0,lty=2)
 
 for(i in 1:n) { points( PZ[i,1,],PZ[i,2,],pch=46,col=rgb(r[i],g[i],b[i]) ) }
 text(Z.pm[,1],Z.pm[,2], cex = 0.3, labels=c(
-'DNA1',
-'DNA2',
-'DNA3',
-'DNA4',
+'RNA1',
+'RNA2',
+'RNA3',
+'RNA4',
 ))   #add labels here
     {
 dev.print(device=postscript, "Zgraph3.eps", onefile=FALSE, horizontal=FALSE)

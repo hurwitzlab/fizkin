@@ -7,14 +7,19 @@
 #PBS -l place=pack:shared
 #PBS -l walltime=24:00:00
 #PBS -l cput=24:00:00
-#PBS -M kyclark@email.arizona.edu
+#PBS -M scottdaniel@email.arizona.edu
 #PBS -m ea
 
 # Expects:
+<<<<<<< Updated upstream
 # FILES_LIST DATA_DIR SCRIPT_DIR HOST_JELLYFISH_DIR 
 # SCREENED_DIR KMER_DIR MER_SIZE JELLYFISH STEP_SIZE 
 
 source /usr/share/Modules/init/bash
+=======
+# SCRIPT_DIR, HOST_JELLYFISH_DIR, SCREENED_DIR, KMER_DIR,
+# MER_SIZE, JELLYFISH, FILES_LIST
+>>>>>>> Stashed changes
 
 set -u
 
@@ -73,16 +78,24 @@ while read FASTA; do
   KMER_FILE="$KMER_DIR/${FASTA_BASE}.kmers"
   LOC_FILE="$KMER_DIR/${FASTA_BASE}.loc"
 
+<<<<<<< Updated upstream
   echo Kmerizing \"$FASTA_BASE\" 
 
   $SCRIPT_DIR/kmerizer.pl -q -i "$FASTA" -o "$KMER_FILE" \
     -l "$LOC_FILE" -k "$MER_SIZE" 
+=======
+echo Kmerizing \"$FASTA_BASE\"
+
+$SCRIPT_DIR/kmerizer.pl -q -i "$FASTA" -o "$KMER_FILE" \
+  -l "$LOC_FILE" -k "$MER_SIZE"
+>>>>>>> Stashed changes
 
   if [[ ! -e $KMER_FILE ]]; then
     echo Cannot find K-mer file \"$KMER_FILE\"
     exit 1
   fi
 
+<<<<<<< Updated upstream
   #
   # The "host" file is what will be created in the querying 
   # and will be passed to the "screen-host.pl" script 
@@ -92,6 +105,17 @@ while read FASTA; do
   if [[ ! -d $TMPDIR ]]; then
     mkdir -p $TMPDIR
   fi
+=======
+#
+# The "host" file is what will be created in the querying
+# and will be passed to the "screen-host.pl" script
+#
+PROG=$(basename $0 ".sh")
+TMPDIR="$DATA_DIR/tmp"
+if [[ ! -d $TMPDIR ]]; then
+  mkdir -p $TMPDIR
+fi
+>>>>>>> Stashed changes
 
   HOST=$(mktemp --tmpdir="$TMPDIR" "${PROG}.XXXXXXX")
   touch $HOST

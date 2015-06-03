@@ -3,7 +3,7 @@
 # --------------------------------------------------
 #
 # config.sh
-# 
+#
 # Edit this file to match your directory structure
 #
 # --------------------------------------------------
@@ -19,7 +19,7 @@ export GUNZIP="/bin/gunzip"
 #
 # The main checkout
 #
-PROJECT_DIR="/rsgrps/bhurwitz/kyclark/mouse"
+PROJECT_DIR="/rsgrps/bhurwitz/scottdaniel/mouse"
 
 #
 # Where we can find the worker scripts
@@ -31,7 +31,7 @@ export SCRIPT_DIR="$PROJECT_DIR/scripts/workers"
 #
 export DATA_DIR="$PROJECT_DIR/data"
 
-# Where to find the "raw" DNA reads
+# Where to find the "raw" DNA or RNA reads
 #
 export RAW_DIR="/rsgrps/bhurwitz/hurwitzlab/data/raw/Doetschman_20111007/all"
 
@@ -47,9 +47,9 @@ export HOST_JELLYFISH_DIR="$DATA_DIR/jellyfish/host"
 
 export HOST_BOWTIE_DIR="/rsgrps/bhurwitz/hurwitzlab/data/bowtie"
 
-# 
+#
 # Where we can find all our custom binaries (e.g., jellyfish)
-# 
+#
 export BIN_DIR="/rsgrps/bhurwitz/hurwitzlab/bin"
 export JELLYFISH="$BIN_DIR/jellyfish"
 

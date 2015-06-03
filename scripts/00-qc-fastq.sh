@@ -2,7 +2,7 @@
 
 # --------------------------------------------------
 # 00-qc-fastq.sh
-# 
+#
 # This script runs illumina QC on a directory
 # of fastq files, runs the paired read analysis,
 # then creates fasta/qual files from the paired
@@ -23,7 +23,7 @@ export STEP_SIZE=20
 PROG=$(basename $0 ".sh")
 STDOUT_DIR="$CWD/out/$PROG"
 
-init_dirs "$STDOUT_DIR" 
+init_dirs "$STDOUT_DIR"
 
 if [[ ! -d $RAW_DIR ]]; then
   echo "Bad RAW_DIR ($RAW_DIR)"
@@ -43,13 +43,9 @@ echo RAW_DIR \"$RAW_DIR\"
 export FILES_LIST="${HOME}/${PROG}.in"
 
 #
-# allow determination of files from command line
+# find those RNA files!
 #
-if [ -n $1 ] && [ -s $1 ]; then
-  cat $1 > $FILES_LIST
-else
-  find $RAW_DIR -name DNA\* > $FILES_LIST
-fi
+find $RAW_DIR -name RNA\* > $FILES_LIST
 
 NUM_FILES=$(lc $FILES_LIST)
 
