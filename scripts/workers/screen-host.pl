@@ -14,14 +14,16 @@ main();
 
 # --------------------------------------------------
 sub main {
-    my $out_dir   = cwd();
-    my $host_file = '';
+    my $out_dir     = cwd();
+    my $host_file   = '';
+    my $reject_file = '';
     my ($help, $man_page);
     GetOptions(
-        'h|host=s' => \$host_file,
-        'o|out:s'  => \$out_dir,
-        'help'     => \$help,
-        'man'      => \$man_page,
+        'h|host=s'   => \$host_file,
+        'o|out:s'    => \$out_dir,
+        'r|reject:s' => \$reject_file,
+        'help'       => \$help,
+        'man'        => \$man_page,
     ) or pod2usage(2);
 
     if ($help || $man_page) {
@@ -52,6 +54,11 @@ sub main {
     printf "Using %s host ids from '%s'\n", 
         scalar keys %$host_id, basename($host_file);
 
+    my $reject_fh;
+    if ($reject_file) {
+        open $reject_fh, '>', $reject_file;
+    }
+
     for my $file (@files) {
         printf "%5d: %s\n", ++$file_num, basename($file); 
 
@@ -69,6 +76,9 @@ sub main {
 
             if ($host_id->{ $id }) {
                 $removed++;
+                if ($reject_fh) {
+                    print $reject_fh ">$rec";
+                }
             }
             else {
                 print $out ">$rec";
@@ -118,9 +128,10 @@ screen-host.pl - screen host sequences from FASTA files
 
 Options:
 
-  -o|--out Where to write output file (default '.')
-  --help   Show brief help and exit
-  --man    Show full documentation
+  -o|--out     Where to write output file (default '.')
+  -r|--reject  Where to write rejected sequences
+  --help       Show brief help and exit
+  --man        Show full documentation
 
 =head1 DESCRIPTION
 
