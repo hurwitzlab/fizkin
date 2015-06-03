@@ -67,7 +67,7 @@ export FASTA_SPLIT_DIR="$DATA_DIR/fasta-split"
 export COUNT_DIR="$DATA_DIR/counts"
 export MODE_DIR="$DATA_DIR/modes"
 export MATRIX_DIR="$DATA_DIR/matrix"
-export MAX_JELLYFISH_INPUT_SIZE=150 # MB
+export MAX_JELLYFISH_INPUT_SIZE=200 # MB
 
 #
 # Some custom functions for our scripts

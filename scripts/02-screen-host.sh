@@ -11,6 +11,7 @@
 set -u
 source ./config.sh
 export INPUT_DIR="$FASTA_DIR"
+export STEP_SIZE=1
 
 # --------------------------------------------------
 
@@ -42,7 +43,7 @@ if [ $NUM_FILES -lt 1 ]; then
   exit 1
 fi
 
-JOB=$(qsub -N "host-jf" -J 1-$NUM_FILES -j oe -o "$STDOUT_DIR" -v FILES_LIST,DATA_DIR,SCRIPT_DIR,HOST_JELLYFISH_DIR,SCREENED_DIR,KMER_DIR,MER_SIZE,JELLYFISH $SCRIPT_DIR/screen-host.sh)
+JOB=$(qsub -N "host-jf" -J 1-$NUM_FILES:$STEP_SIZE -j oe -o "$STDOUT_DIR" -v FILES_LIST,DATA_DIR,SCRIPT_DIR,HOST_JELLYFISH_DIR,SCREENED_DIR,KMER_DIR,MER_SIZE,JELLYFISH,STEP_SIZE $SCRIPT_DIR/screen-host.sh)
 
 if [ $? -eq 0 ]; then
   echo Submitted job \"$JOB\" for you. Sayonara.
