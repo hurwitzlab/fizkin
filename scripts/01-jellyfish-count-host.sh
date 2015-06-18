@@ -22,6 +22,7 @@ PROG=$(basename "$0" ".sh")
 STDOUT_DIR="$CWD/out/$PROG"
 
 init_dirs "$STDOUT_DIR"
+init_dirs "$OUT_DIR"
 
 export FILES_LIST="$HOME/${PROG}.in"
 
