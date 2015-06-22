@@ -60,6 +60,8 @@ export FASTQ_DIR="$DATA_DIR/fastq"
 export FASTA_DIR="$DATA_DIR/fasta"
 export BT_ALIGNED_DIR="$DATA_DIR/bowtie-aligned"
 export SCREENED_DIR="$DATA_DIR/screened"
+# "Rejected" directory is for reads that match hosts, i.e. where the mouse RNA kmers are going to go
+export REJECTED_DIR="$DATA_DIR/rejected"
 export SUFFIX_DIR="$DATA_DIR/suffix"
 export KMER_DIR="$DATA_DIR/kmer"
 export JELLYFISH_DIR="$DATA_DIR/jellyfish"
@@ -67,7 +69,7 @@ export FASTA_SPLIT_DIR="$DATA_DIR/fasta-split"
 export COUNT_DIR="$DATA_DIR/counts"
 export MODE_DIR="$DATA_DIR/modes"
 export MATRIX_DIR="$DATA_DIR/matrix"
-export MAX_JELLYFISH_INPUT_SIZE=200 # MB
+export MAX_JELLYFISH_INPUT_SIZE=100 # MB
 
 #
 # Some custom functions for our scripts

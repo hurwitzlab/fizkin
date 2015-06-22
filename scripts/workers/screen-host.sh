@@ -4,6 +4,7 @@
 #PBS -q standard
 #PBS -l jobtype=serial
 #PBS -l select=1:ncpus=2:mem=10gb
+#PBS -l pvmem=20gb
 #PBS -l place=pack:shared
 #PBS -l walltime=24:00:00
 #PBS -l cput=24:00:00
@@ -113,7 +114,7 @@ while read FASTA; do
 
   echo Screening with \"$HOST\"
 
-  $SCRIPT_DIR/screen-host.pl -h "$HOST" -o "$SCREENED_DIR" $FASTA
+  $SCRIPT_DIR/screen-host.pl -h "$HOST" -o "$SCREENED_DIR" -r "$REJECTED_DIR" $FASTA
 
   echo Removing temp files
   rm "$HOST"
