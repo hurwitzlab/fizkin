@@ -29,6 +29,10 @@ if [[ ! -d "$KMER_DIR" ]]; then
   mkdir -p "$KMER_DIR"
 fi
 
+if [[ ! -d "$REJECTED_DIR" ]]; then
+  mkdir -p "$REJECTED_DIR"
+fi
+
 #
 # Find input FASTA files
 #
