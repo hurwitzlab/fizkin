@@ -7,9 +7,9 @@
 #PBS -l pvmem=20gb
 #PBS -l place=pack:shared
 #PBS -l walltime=24:00:00
-#PBS -l cput=24:00:00
+#PBS -l cput=48:00:00
 #PBS -M scottdaniel@email.arizona.edu
-#PBS -m ea
+#PBS -m bea
 
 # Expects:
 # FILES_LIST DATA_DIR SCRIPT_DIR HOST_JELLYFISH_DIR

@@ -33,7 +33,7 @@ sub main {
             -exitval => 0,
             -verbose => $man_page ? 2 : 1
         });
-    }; 
+    };
 
     my @files = split /\s*,\s*/, $file_list;
 
@@ -64,7 +64,7 @@ sub split_file {
 
     if (-s $file < $max_size) {
         warn "File ($file) is OK\n";
-        copy($file, $out_dir); 
+        copy($file, $out_dir);
         return;
     }
 
@@ -106,9 +106,9 @@ sub split_file {
 
     while ($buffer) {
         write_out(
-            $out_dir, 
-            $file, 
-            $file_num++, 
+            $out_dir,
+            $file,
+            $file_num++,
             substr($buffer, 0, $max_size) . "\n"
         );
 
@@ -141,11 +141,11 @@ __END__
 
 =head1 NAME
 
-fasta-split.pl - a script
+fasta-split.pl - a script to split fasta files
 
 =head1 SYNOPSIS
 
-  fasta-split.pl -f input.fa -o /out/dir --max 100 
+  fasta-split.pl -f input.fa -o /out/dir --max 100
 
 Options:
 
