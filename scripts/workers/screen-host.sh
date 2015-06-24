@@ -114,7 +114,7 @@ while read FASTA; do
 
   echo Screening with \"$HOST\"
 
-  $SCRIPT_DIR/screen-host.pl -h "$HOST" -o "$SCREENED_DIR" -r "$REJECTED_DIR" $FASTA
+  $SCRIPT_DIR/screen-host.pl -h "$HOST" -o "$SCREENED_DIR" -r "$REJECTED_DIR/$FASTA_BASE" $FASTA
 
   echo Removing temp files
   rm "$HOST"
