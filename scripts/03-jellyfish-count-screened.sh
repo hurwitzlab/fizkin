@@ -20,7 +20,7 @@ export CWD="$PWD"
 PROG=$(basename "$0" ".sh")
 STDOUT_DIR="$CWD/out/$PROG"
 
-init_dirs "$STDOUT_DIR" 
+init_dirs "$STDOUT_DIR"
 
 if [[  ! -d $KMER_DIR ]]; then
   mkdir -p $KMER_DIR
@@ -42,7 +42,7 @@ fi
 
 NUM_FILES=$(lc $FILES_LIST)
 
-echo Found \"$NUM_FILES\" 
+echo Found \"$NUM_FILES\"
 
 if [ $NUM_FILES -lt 1 ]; then
   echo Nothing to do.
@@ -56,6 +56,8 @@ fi
 
 JOB=$(qsub -N scrn-ct $JOBS_ARG -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,SOURCE_DIR,MER_SIZE,FILES_LIST,STEP_SIZE,JELLYFISH,KMER_DIR,OUT_DIR $SCRIPT_DIR/jellyfish-count.sh)
 
+# ($?) Expands to the exit status of the most recently executed foreground pipeline.
+# And an exit status of 0 (for a 'qsub' command) means no errors
 if [ $? -eq 0 ]; then
   echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Pinne kanam.
 else

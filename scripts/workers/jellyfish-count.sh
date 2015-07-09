@@ -90,6 +90,9 @@ while read FILE; do
 
   $JELLYFISH count -m $MER_SIZE -s $HASH_SIZE -t $THREADS -o $JF_FILE $FILE
 
+### Possible bug here... I noticed that it did not kmerize the
+### first time I ran this on the RNA-seq data
+
   if [[ ${KMERIZE_FILES:=0} -gt 0 ]]; then
     KMER_FILE="$KMER_DIR/${BASENAME}.kmers"
     LOC_FILE="$KMER_DIR/${BASENAME}.loc"
