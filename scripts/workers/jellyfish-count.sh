@@ -95,8 +95,6 @@ while read FILE; do
 
     $KMERIZER -q -i "$FILE" -o "$KMER_FILE" -l "$LOC_FILE" -k "$MER_SIZE"
   fi
-
-  rm $FILE
 done < $TMP_CHECKED
 
 echo Finished $(date)
