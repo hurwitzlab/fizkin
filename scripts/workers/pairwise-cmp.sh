@@ -9,7 +9,7 @@
 #PBS -l walltime=24:00:00
 #PBS -l cput=24:00:00
 #PBS -m ae
-#PBS -M kyclark@email.arizona.edu
+#PBS -M scottdaniel@email.arizona.edu
 
 set -u
 

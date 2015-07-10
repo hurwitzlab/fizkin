@@ -1,18 +1,19 @@
 #!/bin/bash
 
-#PBS -W group_list=mbsulli
+#PBS -W group_list=bhurwitz
 #PBS -q standard
 #PBS -l jobtype=serial
 #PBS -l select=1:ncpus=2:mem=10gb
+#PBS -l pvmem=20gb
 #PBS -l place=pack:shared
 #PBS -l walltime=24:00:00
-#PBS -l cput=24:00:00
-#PBS -M kyclark@email.arizona.edu
-#PBS -m ea
+#PBS -l cput=48:00:00
+#PBS -M scottdaniel@email.arizona.edu
+#PBS -m bea
 
 # Expects:
-# FILES_LIST DATA_DIR SCRIPT_DIR HOST_JELLYFISH_DIR 
-# SCREENED_DIR KMER_DIR MER_SIZE JELLYFISH STEP_SIZE 
+# FILES_LIST DATA_DIR SCRIPT_DIR HOST_JELLYFISH_DIR
+# SCREENED_DIR REJECTED_DIR KMER_DIR MER_SIZE JELLYFISH STEP_SIZE
 
 source /usr/share/Modules/init/bash
 
@@ -73,10 +74,10 @@ while read FASTA; do
   KMER_FILE="$KMER_DIR/${FASTA_BASE}.kmers"
   LOC_FILE="$KMER_DIR/${FASTA_BASE}.loc"
 
-  echo Kmerizing \"$FASTA_BASE\" 
+  echo Kmerizing \"$FASTA_BASE\"
 
   $SCRIPT_DIR/kmerizer.pl -q -i "$FASTA" -o "$KMER_FILE" \
-    -l "$LOC_FILE" -k "$MER_SIZE" 
+    -l "$LOC_FILE" -k "$MER_SIZE"
 
   if [[ ! -e $KMER_FILE ]]; then
     echo Cannot find K-mer file \"$KMER_FILE\"
@@ -84,8 +85,8 @@ while read FASTA; do
   fi
 
   #
-  # The "host" file is what will be created in the querying 
-  # and will be passed to the "screen-host.pl" script 
+  # The "host" file is what will be created in the querying
+  # and will be passed to the "screen-host.pl" script
   #
   PROG=$(basename $0 ".sh")
   TMPDIR="$DATA_DIR/tmp"
@@ -113,7 +114,7 @@ while read FASTA; do
 
   echo Screening with \"$HOST\"
 
-  $SCRIPT_DIR/screen-host.pl -h "$HOST" -o "$SCREENED_DIR" $FASTA
+  $SCRIPT_DIR/screen-host.pl -h "$HOST" -o "$SCREENED_DIR" -r "$REJECTED_DIR/$FASTA_BASE" $FASTA
 
   echo Removing temp files
   rm "$HOST"

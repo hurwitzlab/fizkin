@@ -1,12 +1,13 @@
 #!/bin/bash
 
-#PBS -W group_list=mbsulli
+#PBS -W group_list=bhurwitz
 #PBS -q standard
 #PBS -l jobtype=serial
 #PBS -l select=1:ncpus=4:mem=10gb
+#PBS -l pvmem=20gb
 #PBS -l walltime=24:00:00
 #PBS -l cput=24:00:00
-#PBS -M kyclark@email.arizona.edu
+#PBS -M scottdaniel@email.arizona.edu
 #PBS -m ea
 
 # Expects: STEP_SIZE
@@ -88,6 +89,9 @@ while read FILE; do
   fi
 
   $JELLYFISH count -m $MER_SIZE -s $HASH_SIZE -t $THREADS -o $JF_FILE $FILE
+
+### Possible bug here... I noticed that it did not kmerize the
+### first time I ran this on the RNA-seq data
 
   if [[ ${KMERIZE_FILES:=0} -gt 0 ]]; then
     KMER_FILE="$KMER_DIR/${BASENAME}.kmers"

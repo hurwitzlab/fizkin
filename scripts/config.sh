@@ -3,7 +3,7 @@
 # --------------------------------------------------
 #
 # config.sh
-# 
+#
 # Edit this file to match your directory structure
 #
 # --------------------------------------------------
@@ -19,7 +19,7 @@ export GUNZIP="/bin/gunzip"
 #
 # The main checkout
 #
-PROJECT_DIR="/rsgrps/bhurwitz/kyclark/mouse"
+PROJECT_DIR="/rsgrps/bhurwitz/scottdaniel/mouse"
 
 #
 # Where we can find the worker scripts
@@ -31,7 +31,7 @@ export SCRIPT_DIR="$PROJECT_DIR/scripts/workers"
 #
 export DATA_DIR="$PROJECT_DIR/data"
 
-# Where to find the "raw" DNA reads
+# Where to find the "raw" DNA or RNA reads
 #
 export RAW_DIR="/rsgrps/bhurwitz/hurwitzlab/data/raw/Doetschman_20111007/all"
 
@@ -47,9 +47,9 @@ export HOST_JELLYFISH_DIR="$DATA_DIR/jellyfish/host"
 
 export HOST_BOWTIE_DIR="/rsgrps/bhurwitz/hurwitzlab/data/bowtie"
 
-# 
+#
 # Where we can find all our custom binaries (e.g., jellyfish)
-# 
+#
 export BIN_DIR="/rsgrps/bhurwitz/hurwitzlab/bin"
 export JELLYFISH="$BIN_DIR/jellyfish"
 
@@ -60,6 +60,8 @@ export FASTQ_DIR="$DATA_DIR/fastq"
 export FASTA_DIR="$DATA_DIR/fasta"
 export BT_ALIGNED_DIR="$DATA_DIR/bowtie-aligned"
 export SCREENED_DIR="$DATA_DIR/screened"
+# "Rejected" directory is for reads that match hosts, i.e. where the mouse RNA kmers are going to go
+export REJECTED_DIR="$DATA_DIR/rejected"
 export SUFFIX_DIR="$DATA_DIR/suffix"
 export KMER_DIR="$DATA_DIR/kmer"
 export JELLYFISH_DIR="$DATA_DIR/jellyfish"
@@ -67,7 +69,7 @@ export FASTA_SPLIT_DIR="$DATA_DIR/fasta-split"
 export COUNT_DIR="$DATA_DIR/counts"
 export MODE_DIR="$DATA_DIR/modes"
 export MATRIX_DIR="$DATA_DIR/matrix"
-export MAX_JELLYFISH_INPUT_SIZE=200 # MB
+export MAX_JELLYFISH_INPUT_SIZE=100 # MB
 
 #
 # Some custom functions for our scripts

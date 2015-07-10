@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 use common::sense;
 use autodie;
@@ -31,7 +31,7 @@ sub main {
             -exitval => 0,
             -verbose => $man_page ? 2 : 1
         });
-    }; 
+    };
 
     unless ($host_file) {
         pod2usage('Missing host file');
@@ -51,7 +51,7 @@ sub main {
     my $seen     = 0;
     my $removed  = 0;
 
-    printf "Using %s host ids from '%s'\n", 
+    printf "Using %s host ids from '%s'\n",
         scalar keys %$host_id, basename($host_file);
 
     my $reject_fh;
@@ -60,7 +60,7 @@ sub main {
     }
 
     for my $file (@files) {
-        printf "%5d: %s\n", ++$file_num, basename($file); 
+        printf "%5d: %s\n", ++$file_num, basename($file);
 
         local $/ = '>';
         open my $in , '<', $file;

@@ -7,7 +7,7 @@
 #PBS -l place=pack:exclhost
 #PBS -l walltime=24:00:00
 #PBS -l cput=24:00:00
-#PBS -M kyclark@email.arizona.edu
+#PBS -M scottdaniel@email.arizona.edu
 #PBS -m ea
 
 # --------------------------------------------------
@@ -32,9 +32,5 @@ echo $SCRIPT_DIR/make-matrix.pl -d $MODE_DIR $MATRIX_FILE
 $SCRIPT_DIR/make-matrix.pl -d $MODE_DIR > $MATRIX_FILE
 
 echo Matrix created in \"$MATRIX_FILE\"
-
-# R is needed for the "sna.pl" script
-#module load R
-#$SCRIPT_DIR/sna.pl -s $MATRIX_FILE -o $MATRIX_DIR 
 
 echo Finished $(date)

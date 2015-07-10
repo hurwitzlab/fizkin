@@ -3,18 +3,18 @@
 #PBS -W group_list=bhurwitz
 #PBS -q standard
 #PBS -l jobtype=serial
-#PBS -l select=1:ncpus=2:mem=5gb
+#PBS -l select=1:ncpus=2:mem=4gb
 #PBS -l walltime=24:00:00
 #PBS -l cput=24:00:00
-#PBS -M kyclark@email.arizona.edu
+#PBS -M scottdaniel@email.arizona.edu
 #PBS -m ea
 
 #
 # Runs QC on a set of paired-end Illumina FASTQ files
 #
 
-# expects: 
-# SCRIPT_DIR RAW_DIR BIN_DIR FILE FASTQ_DIR FASTA_DIR 
+# expects:
+# SCRIPT_DIR RAW_DIR BIN_DIR FILE FASTQ_DIR FASTA_DIR
 
 # --------------------------------------------------
 # R is needed by the SolexaQA++ program
@@ -66,7 +66,7 @@ while read FILE; do
     echo Failed to create trimmed file \"$TRIMMED_FILE\"
     continue
   fi
-  
+
   CLIPPED_FILE=${TRIMMED_FILE}.clipped
 
   $BIN_DIR/fastx_clipper -v -l ${MIN_SEQ_LENGTH:=52} \
