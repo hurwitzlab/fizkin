@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/rsgrps/bhurwitz/hurwitzlab/bin/perl
 
 $| = 1;
 
@@ -6,7 +6,6 @@ use common::sense;
 use autodie;
 use File::Basename qw(dirname basename);
 use File::Find::Rule;
-use File::CountLines qw(count_lines);
 use Getopt::Long;
 use List::MoreUtils qw(uniq);
 use Pod::Usage;
@@ -39,16 +38,16 @@ sub main {
         pod2usage("Bad directory ($dir)");
     }
 
-    say STDERR "Looking for files in '$dir'";
-    my @files = File::Find::Rule->file()->in($dir);
+    my @files = File::Find::Rule->file()->name('*')->in($dir);
+    printf STDERR "Found %s files in '%s.'\n", scalar @files, $dir;
 
     unless (@files) {
-        pod2usage("Found no regular files in dir '$dir'");
+        pod2usage("Cannot find anything to work on.");
     }
 
-    printf STDERR "Processing %s files.\n", scalar @files;
-
     process(\@files);
+
+    say "Done.";
 }
 
 # --------------------------------------------------
@@ -57,26 +56,29 @@ sub process {
     my $n_files = scalar @$files or return;
     my $i       = 0;
     my %matrix;
+    my $size = 0;
     for my $file (@$files) {
+#        printf STDERR "%s / %s\n", ++$i , $n_files;
         $i++;
         if ($i % 100 == 0) {
-            printf STDERR "%-70s\r", sprintf("%3d%%", int($i/$n_files) * 100);
+            printf STDERR "%-70s\r", sprintf("%3d%%", int($i*100/$n_files));
         }
 
         my $sample1 = basename(dirname($file));
         my $sample2 = basename($file);
 
-        open my $fh, '<', $file;
-        local $/;
-        my $n = <$fh>;
-        close $fh;
+        chomp(my $n = `cat $file`);
+
+#        open my $fh, '<', $file;
+#        local $/;
+#        my $n = <$fh>;
+#        close $fh;
 
         $n ||= 0;
 
-        $matrix{ $sample1 }{ $sample2 } = sprintf('%.2f', log($n));
-        last if $i > 5000;
+        $matrix{ $sample1 }{ $sample2 } = sprintf('%.2f', $n>0 ? log($n) : $n);
     }
-    print "\n";
+    print STDERR "\n";
 
     my @keys     = keys %matrix;
     my @all_keys = sort(uniq(@keys, map { keys %{ $matrix{ $_ } } } @keys));
