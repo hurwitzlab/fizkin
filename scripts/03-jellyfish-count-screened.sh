@@ -54,7 +54,7 @@ if [ $NUM_FILES -gt 1 ]; then
   JOBS_ARG="-J 1-$NUM_FILES:$STEP_SIZE "
 fi
 
-JOB=$(qsub -N scrn-ct $JOBS_ARG -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,SOURCE_DIR,MER_SIZE,FILES_LIST,STEP_SIZE,JELLYFISH,KMER_DIR,OUT_DIR $SCRIPT_DIR/jellyfish-count.sh)
+JOB=$(qsub -N scrn-ct $JOBS_ARG -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,SOURCE_DIR,MER_SIZE,FILES_LIST,STEP_SIZE,JELLYFISH,KMER_DIR,OUT_DIR,FASTA_SPLIT_DIR $SCRIPT_DIR/jellyfish-count.sh)
 
 if [ $? -eq 0 ]; then
   echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Pinne kanam.
