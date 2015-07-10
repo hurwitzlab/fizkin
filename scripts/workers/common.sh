@@ -25,5 +25,5 @@ function get_lines() {
     exit 1
   fi
 
-  awk "NR==$START,NR==$(($START + $STEP))" $FILE > $OUT_FILE
+  awk "NR==$START,NR==$(($START + $STEP - 1))" $FILE > $OUT_FILE
 }
