@@ -35,9 +35,10 @@ fi
 #
 INPUT_FILES=$(mktemp)
 
-if [ -n "$1" ] && [ -e "$1" ]; then
-  echo Taking input files from \"$1\"
-  cp $1 $INPUT_FILES
+INPUT_FILE_NAME=${1:-''}
+if [ -n "$INPUT_FILE_NAME" ] && [ -e "$INPUT_FILE_NAME" ]; then
+  echo Taking input files from \"$INPUT_FILE_NAME\"
+  cp $INPUT_FILE_NAME $INPUT_FILES
 else
   if [[ ! -d "$INPUT_DIR" ]]; then
     echo INPUT_DIR \"$INPUT_DIR\" does not exist
