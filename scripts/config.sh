@@ -15,11 +15,13 @@ export MER_SIZE=20
 export MIN_SEQ_LENGTH=50
 export QSTAT="/usr/local/bin/qstat_local"
 export GUNZIP="/bin/gunzip"
+export EMAIL="kyclark@email.arizona.edu"
+export GROUP="mbsulli"
 
 #
 # The main checkout
 #
-PROJECT_DIR="/rsgrps/bhurwitz/scottdaniel/mouse"
+PROJECT_DIR="/rsgrps/bhurwitz/kyclark/mouse"
 
 #
 # Where we can find the worker scripts
@@ -69,7 +71,7 @@ export FASTA_SPLIT_DIR="$DATA_DIR/fasta-split"
 export COUNT_DIR="$DATA_DIR/counts"
 export MODE_DIR="$DATA_DIR/modes"
 export MATRIX_DIR="$DATA_DIR/matrix"
-export MAX_JELLYFISH_INPUT_SIZE=100 # MB
+export MAX_JELLYFISH_INPUT_SIZE=800 # MB
 
 #
 # Some custom functions for our scripts

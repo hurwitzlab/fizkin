@@ -1,14 +1,12 @@
 #!/bin/bash
 
-#PBS -W group_list=bhurwitz
+
 #PBS -q standard
 #PBS -l jobtype=serial
 #PBS -l select=1:ncpus=4:mem=10gb
 #PBS -l pvmem=20gb
 #PBS -l walltime=24:00:00
 #PBS -l cput=24:00:00
-#PBS -M scottdaniel@email.arizona.edu
-#PBS -m ea
 
 # Expects: STEP_SIZE
 # SCRIPT_DIR STEP_SIZE MER_SIZE FILES_LIST JELLYFISH OUT_DIR FASTA_SPLIT_DIR

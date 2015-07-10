@@ -67,8 +67,6 @@ while read FASTA; do
     find $JELLYFISH_DIR -name $(basename $FASTA).jf >> $JELLYFISH_FILES
 done < $INPUT_FILES
 
-#find $JELLYFISH_DIR -name \*.jf > $JELLYFISH_FILES
-
 NUM_JF_FILES=$(lc $JELLYFISH_FILES)
 
 echo Found \"$NUM_JF_FILES\" indexes in \"$JELLYFISH_DIR\"
@@ -116,4 +114,3 @@ else
 fi
 
 rm $JELLYFISH_FILES
-rm $INPUT_FILES

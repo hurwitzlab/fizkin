@@ -8,7 +8,7 @@
 #
 # --------------------------------------------------
 
-#set -u
+set -u
 source ./config.sh
 export SOURCE_DIR="$SCREENED_DIR"
 export OUT_DIR="$JELLYFISH_DIR"
@@ -32,8 +32,9 @@ fi
 
 export FILES_LIST="$HOME/${PROG}.in"
 
-if [ -n "$1" ] && [ -e "$1" ]; then
-  echo Taking files from \"$1\"
+INPUT_FILES_LIST=${1:-''}
+if [ -n "$INPUT_FILES_LIST" ] && [ -e "$INPUT_FILES_LIST" ]; then
+  echo Taking files from \"$INPUT_FILES_LIST\"
   cp $1 $FILES_LIST
 else
   echo Taking files from \"$SOURCE_DIR\"
@@ -54,7 +55,14 @@ if [ $NUM_FILES -gt 1 ]; then
   JOBS_ARG="-J 1-$NUM_FILES:$STEP_SIZE "
 fi
 
-JOB=$(qsub -N scrn-ct $JOBS_ARG -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,SOURCE_DIR,MER_SIZE,FILES_LIST,STEP_SIZE,JELLYFISH,KMER_DIR,OUT_DIR,FASTA_SPLIT_DIR $SCRIPT_DIR/jellyfish-count.sh)
+EMAIL_ARG=""
+if [ $EMAIL ]; then
+  EMAIL_ARG="-M $EMAIL -m ea"
+fi
+
+GROUP_ARG="-W group_list=${GROUP:=bhurwitz}"
+
+JOB=$(qsub -N scrn-ct $JOBS_ARG $EMAIL_ARG $GROUP_ARG -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,SOURCE_DIR,MER_SIZE,FILES_LIST,STEP_SIZE,JELLYFISH,KMER_DIR,OUT_DIR,FASTA_SPLIT_DIR $SCRIPT_DIR/jellyfish-count.sh)
 
 # ($?) Expands to the exit status of the most recently executed foreground pipeline.
 # And an exit status of 0 (for a 'qsub' command) means no errors
