@@ -21,7 +21,7 @@ export GROUP="mbsulli"
 #
 # The main checkout
 #
-PROJECT_DIR="/rsgrps/bhurwitz/kyclark/mouse"
+PROJECT_DIR="/rsgrps/bhurwitz/kyclark/pov"
 
 #
 # Where we can find the worker scripts
@@ -89,5 +89,10 @@ function init_dirs {
 
 # --------------------------------------------------
 function lc() {
-    wc -l $1 | cut -d ' ' -f 1
+  FILE=${1:-''}
+  if [ -e $FILE ]; then
+    wc -l $FILE | cut -d ' ' -f 1
+  else 
+    echo 0
+  fi
 }
