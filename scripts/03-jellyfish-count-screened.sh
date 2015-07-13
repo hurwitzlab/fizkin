@@ -32,18 +32,29 @@ fi
 
 export FILES_LIST="$HOME/${PROG}.in"
 
+if [ -e $FILES_LIST ]; then
+  rm $FILES_LIST
+fi
+
 INPUT_FILES_LIST=${1:-''}
 if [ -n "$INPUT_FILES_LIST" ] && [ -e "$INPUT_FILES_LIST" ]; then
   echo Taking files from \"$INPUT_FILES_LIST\"
-  cp $1 $FILES_LIST
+
+  while read FILE; do
+    if [ -e $FILE ]; then
+      echo $FILE >> $FILES_LIST
+    else
+      echo Bad input file \"$FILE\"
+    fi
+  done < $INPUT_FILES_LIST
 else
   echo Taking files from \"$SOURCE_DIR\"
-  find $SOURCE_DIR -name \*.fa > $FILES_LIST
+  find -L $SOURCE_DIR -name \*.fa > $FILES_LIST
 fi
 
 NUM_FILES=$(lc $FILES_LIST)
 
-echo Found \"$NUM_FILES\"
+echo Found \"$NUM_FILES\" files
 
 if [ $NUM_FILES -lt 1 ]; then
   echo Nothing to do.
@@ -62,7 +73,7 @@ fi
 
 GROUP_ARG="-W group_list=${GROUP:=bhurwitz}"
 
-JOB=$(qsub -N scrn-ct $JOBS_ARG $EMAIL_ARG $GROUP_ARG -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,SOURCE_DIR,MER_SIZE,FILES_LIST,STEP_SIZE,JELLYFISH,KMER_DIR,OUT_DIR,FASTA_SPLIT_DIR $SCRIPT_DIR/jellyfish-count.sh)
+JOB=$(qsub -N scrn-ct $JOBS_ARG $EMAIL_ARG $GROUP_ARG -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,SOURCE_DIR,MER_SIZE,FILES_LIST,STEP_SIZE,JELLYFISH,KMER_DIR,OUT_DIR,FASTA_SPLIT_DIR,MAX_JELLYFISH_INPUT_SIZE $SCRIPT_DIR/jellyfish-count.sh)
 
 # ($?) Expands to the exit status of the most recently executed foreground pipeline.
 # And an exit status of 0 (for a 'qsub' command) means no errors
