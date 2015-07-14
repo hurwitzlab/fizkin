@@ -78,23 +78,17 @@ i=0
 while read FILE; do
   BASENAME=$(basename $FILE)
   JF_FILE="$OUT_DIR/${BASENAME}.jf"
+  KMER_FILE="$KMER_DIR/${BASENAME}.kmers"
+  LOC_FILE="$KMER_DIR/${BASENAME}.loc"
 
   let i++
   printf "%5d: %s\n" $i $BASENAME
 
-  if [ -e "$JF_FILE" ]; then
-    rm -f "$JF_FILE";
+  if [[ ! -e "$JF_FILE" ]]; then
+    $JELLYFISH count -m $MER_SIZE -s $HASH_SIZE -t $THREADS -o $JF_FILE $FILE
   fi
 
-  $JELLYFISH count -m $MER_SIZE -s $HASH_SIZE -t $THREADS -o $JF_FILE $FILE
-
-### Possible bug here... I noticed that it did not kmerize the
-### first time I ran this on the RNA-seq data
-
-  if [[ ${KMERIZE_FILES:=0} -gt 0 ]]; then
-    KMER_FILE="$KMER_DIR/${BASENAME}.kmers"
-    LOC_FILE="$KMER_DIR/${BASENAME}.loc"
-
+  if [[ ! -e $KMER_FILE ]]; then
     $KMERIZER -q -i "$FILE" -o "$KMER_FILE" -l "$LOC_FILE" -k "$MER_SIZE"
   fi
 done < $TMP_CHECKED

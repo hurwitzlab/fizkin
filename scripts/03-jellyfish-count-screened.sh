@@ -67,7 +67,7 @@ if [ $NUM_FILES -gt 1 ]; then
 fi
 
 EMAIL_ARG=""
-if [ $EMAIL ]; then
+if [[ ! -z $EMAIL ]]; then
   EMAIL_ARG="-M $EMAIL -m ea"
 fi
 
