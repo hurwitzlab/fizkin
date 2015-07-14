@@ -84,9 +84,11 @@ sub main {
         open $read_fh, '>', $read_file;
     }
 
-    my $count = 0;
+    my $num_matched = 0;
+    my $read_num    = 0;
     READ:
     while (my $loc = <$loc_fh>) {
+        $read_num++;
         chomp($loc);
         my ($read_id, $n_kmers) = split /\t/, $loc;
         my @vals = take($n_kmers, $in) or last;
@@ -96,11 +98,11 @@ sub main {
         my $mode = mode(@vals);
 
         if ($mode >= $mode_min) {
-            $count++;
+            $num_matched++;
             $seen{ $read_id }++ if $unique_file;
 
             if ($read_fh) {
-                say $read_fh join("\t", $read_id, $mode) 
+                say $read_fh join("\t", $read_num, $mode);
             }
         }
     }
@@ -110,7 +112,7 @@ sub main {
     }
 
     if ($out_fh) {
-        say $out_fh $count;
+        say $out_fh $num_matched;
     }
 
     if ($unique_file) {
