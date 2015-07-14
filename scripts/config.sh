@@ -21,7 +21,7 @@ export GROUP="mbsulli"
 #
 # The main checkout
 #
-PROJECT_DIR="/rsgrps/bhurwitz/kyclark/mouse"
+PROJECT_DIR="/rsgrps/bhurwitz/kyclark/pov"
 
 #
 # Where we can find the worker scripts
