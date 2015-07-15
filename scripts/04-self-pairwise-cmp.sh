@@ -124,7 +124,7 @@ fi
 
 GROUP_ARG="-W group_list=${GROUP:=bhurwitz}"
 
-JOB=$(qsub -N "pair-cmp" $JOBS_ARG $EMAIL_ARG $GROUP_ARG -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,SUFFIX_DIR,MODE_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST,STEP_SIZE $SCRIPT_DIR/pairwise-cmp.sh)
+JOB=$(qsub -N "pair-cmp" $JOBS_ARG $EMAIL_ARG $GROUP_ARG -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,SUFFIX_DIR,MODE_DIR,READ_MODE_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST,STEP_SIZE $SCRIPT_DIR/pairwise-cmp.sh)
 
 if [ $? -eq 0 ]; then
   echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Adios.
