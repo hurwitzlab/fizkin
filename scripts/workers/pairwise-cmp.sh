@@ -27,7 +27,7 @@ echo MODE_DIR \"$MODE_DIR\"
 
 PAIRS_FILE=$(mktemp)
 
-get_lines $FILES_LIST $PAIRS_FILE $PBS_ARRAY_INDEX $STEP_SIZE
+get_lines $FILES_LIST $PAIRS_FILE ${PBS_ARRAY_INDEX:=1} $STEP_SIZE
 
 NUM_PAIRS=$(wc -l $PAIRS_FILE | cut -d ' ' -f 1)
 
@@ -59,10 +59,16 @@ while read FASTA SUFFIX; do
   printf "%5d: Processing FASTA \"%s\" to SUFFIX \"%s\"\n" \
     $i $(basename $FASTA) $(basename $SUFFIX)
 
-  BASENAME=$(basename $FASTA ".screened")
-  KMER_FILE="$KMER_DIR/${BASENAME}.kmers"
-  LOC_FILE="$KMER_DIR/${BASENAME}.loc"
-  MODE_OUT_DIR="$MODE_DIR/$BASENAME"
+  FASTA_BASE=$(basename $FASTA ".screened")
+  KMER_FILE="$KMER_DIR/${FASTA_BASE}.kmers"
+  LOC_FILE="$KMER_DIR/${FASTA_BASE}.loc"
+  SUFFIX_BASE=$(basename "$SUFFIX" ".jf")
+  MODE_OUT_DIR="$MODE_DIR/$SUFFIX_BASE"
+  OUT_FILE="$MODE_OUT_DIR/$FASTA_BASE"
+
+  if [[ ! -d $MODE_OUT_DIR ]]; then
+    mkdir -p $MODE_OUT_DIR
+  fi
 
   if [[ ! -e $KMER_FILE ]]; then
       echo Cannot find expected K-mer file \"$KMER_FILE\"
@@ -74,13 +80,21 @@ while read FASTA SUFFIX; do
       exit 1
   fi
 
-  SUFFIX_BASE=$(basename "$SUFFIX" ".jf")
-  OUT_FILE="$MODE_OUT_DIR/$SUFFIX_BASE"
-  READ_FILE="$OUT_FILE.reads"
+  READ_FILE_ARG=""
+  if [[ ! -z $READ_MODE_DIR ]]; then
+    READ_MODE_DIR_OUT="$READ_MODE_DIR/$SUFFIX_BASE"
+
+    if [[ ! -d $READ_MODE_DIR_OUT ]]; then
+      mkdir -p $READ_MODE_DIR_OUT
+    fi
+
+    READ_FILE_ARG="-r $READ_MODE_DIR_OUT/$FASTA_BASE"
+  fi
 
   $JELLYFISH query -i "$SUFFIX" < "$KMER_FILE" | \
     "$SCRIPT_DIR/jellyfish-reduce.pl" -l "$LOC_FILE" -o "$OUT_FILE" \
-    -r $READ_FILE --mode-min 1
+    $READ_FILE_ARG --mode-min 1
+  break
 done < $PAIRS_FILE
 
 echo Finished $(date)

@@ -1,5 +1,7 @@
 #!/usr/bin/env perl
 
+$| = 1;
+
 use common::sense;
 use autodie;
 use File::Basename qw(dirname);
@@ -105,10 +107,6 @@ sub main {
                 say $read_fh join("\t", $read_num, $mode);
             }
         }
-    }
-
-    if (my @leftover = <$in>) {
-        die "Error, you still have input but no more locations.\n";
     }
 
     if ($out_fh) {

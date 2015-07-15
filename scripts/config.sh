@@ -70,6 +70,7 @@ export JELLYFISH_DIR="$DATA_DIR/jellyfish"
 export FASTA_SPLIT_DIR="$DATA_DIR/fasta-split"
 export COUNT_DIR="$DATA_DIR/counts"
 export MODE_DIR="$DATA_DIR/modes"
+export READ_MODE_DIR="$DATA_DIR/read-modes"
 export MATRIX_DIR="$DATA_DIR/matrix"
 export MAX_JELLYFISH_INPUT_SIZE=800 # MB
 
