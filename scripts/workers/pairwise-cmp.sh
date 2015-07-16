@@ -94,7 +94,6 @@ while read FASTA SUFFIX; do
   $JELLYFISH query -i "$SUFFIX" < "$KMER_FILE" | \
     "$SCRIPT_DIR/jellyfish-reduce.pl" -l "$LOC_FILE" -o "$OUT_FILE" \
     $READ_FILE_ARG --mode-min 1
-  break
 done < $PAIRS_FILE
 
 echo Finished $(date)
