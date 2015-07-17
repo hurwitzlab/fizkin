@@ -15,13 +15,13 @@ export MER_SIZE=20
 export MIN_SEQ_LENGTH=50
 export QSTAT="/usr/local/bin/qstat_local"
 export GUNZIP="/bin/gunzip"
-export EMAIL="kyclark@email.arizona.edu"
-export GROUP="mbsulli"
+export EMAIL="scottdaniel@email.arizona.edu"
+export GROUP="bhurwitz"
 
 #
 # The main checkout
 #
-PROJECT_DIR="/rsgrps/bhurwitz/kyclark/pov"
+PROJECT_DIR="/rsgrps/bhurwitz/scottdaniel/mouse"
 
 #
 # Where we can find the worker scripts
