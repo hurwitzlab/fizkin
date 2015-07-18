@@ -1,15 +1,11 @@
 #!/bin/bash
 
-#PBS -W group_list=bhurwitz
 #PBS -q standard
-#PBS -l jobtype=serial
+#PBS -l jobtype=cluster_only
 #PBS -l select=1:ncpus=2:mem=10gb
 #PBS -l pvmem=20gb
-#PBS -l place=pack:shared
 #PBS -l walltime=24:00:00
-#PBS -l cput=48:00:00
-#PBS -M scottdaniel@email.arizona.edu
-#PBS -m bea
+#PBS -l cput=24:00:00
 
 # Expects:
 # FILES_LIST DATA_DIR SCRIPT_DIR HOST_JELLYFISH_DIR
@@ -42,7 +38,7 @@ fi
 
 TMP_FILES=$(mktemp)
 
-get_lines $FILES_LIST $TMP_FILES ${PBS_ARRAY_INDEX:=1} $STEP_SIZE
+get_lines $FILES_LIST $TMP_FILES ${PBS_ARRAY_INDEX:=1} ${STEP_SIZE:=1}
 
 NUM_FILES=$(lc $TMP_FILES)
 
