@@ -63,7 +63,7 @@ sub main {
     elsif ($out_file) {
         my $dir = dirname($out_file);
         unless (-d $dir) {
-            make_path $dir;
+            make_path($dir);
         }
 
         open $out_fh, '>', $out_file;
