@@ -25,6 +25,10 @@ if [[ ! -d "$SCREENED_DIR" ]]; then
   mkdir -p "$SCREENED_DIR"
 fi
 
+if [[ ! -d "$REJECTED_DIR" ]]; then
+  mkdir -p "$REJECTED_DIR"
+fi
+
 if [[ ! -d "$KMER_DIR" ]]; then
   mkdir -p "$KMER_DIR"
 fi
@@ -35,8 +39,7 @@ fi
 export FILES_LIST="${HOME}/${PROG}.in"
 
 #
-# commenting out temp. so i can test this with just one file
-#find $INPUT_DIR -type f > $FILES_LIST
+find $INPUT_DIR -type f > $FILES_LIST
 NUM_FILES=$(lc $FILES_LIST)
 
 echo Found \"$NUM_FILES\" FASTA files in \"$INPUT_DIR\"
@@ -45,8 +48,20 @@ if [ $NUM_FILES -lt 1 ]; then
   echo Nothing to do.
   exit 1
 fi
-#put this back in the next line after testing -J 1-$NUM_FILES:$STEP_SIZE
-JOB=$(qsub -N "host-jf" -j oe -o "$STDOUT_DIR" -v FILES_LIST,DATA_DIR,SCRIPT_DIR,HOST_JELLYFISH_DIR,SCREENED_DIR,KMER_DIR,REJECTED_DIR,MER_SIZE,JELLYFISH,STEP_SIZE $SCRIPT_DIR/screen-host.sh)
+
+JOBS_ARG=""
+if [ $NUM_FILES -gt 1 ]; then
+  JOBS_ARG="-J 1-$NUM_FILES:$STEP_SIZE "
+fi
+
+EMAIL_ARG=""
+if [[ ! -z $EMAIL ]]; then
+  EMAIL_ARG="-M $EMAIL -m ea"
+fi
+
+GROUP_ARG="-W group_list=${GROUP:=bhurwitz}"
+
+JOB=$(qsub -N "host-jf" $JOBS_ARG $EMAIL_ARG $GROUP_ARG -j oe -o "$STDOUT_DIR" -v FILES_LIST,DATA_DIR,SCRIPT_DIR,HOST_JELLYFISH_DIR,SCREENED_DIR,KMER_DIR,REJECTED_DIR,MER_SIZE,JELLYFISH,STEP_SIZE $SCRIPT_DIR/screen-host.sh)
 
 if [ $? -eq 0 ]; then
   echo Submitted job \"$JOB\" for you. Sayonara.
