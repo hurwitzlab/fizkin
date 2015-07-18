@@ -2,7 +2,7 @@
 
 
 #PBS -q standard
-#PBS -l jobtype=serial
+#PBS -l jobtype=cluster_only
 #PBS -l select=1:ncpus=4:mem=10gb
 #PBS -l pvmem=20gb
 #PBS -l walltime=24:00:00
