@@ -11,7 +11,7 @@
 set -u
 source ./config.sh
 export CWD=$PWD
-export STEP_SIZE=20
+export STEP_SIZE=30
 export SOURCE_DIR="$HOST_DIR"
 export OUT_DIR=$HOST_JELLYFISH_DIR
 export KMERIZE_FILES=0
@@ -48,7 +48,20 @@ if [ $COUNT -lt 1 ]; then
   exit 1
 fi
 
-JOB=$(qsub -N jf_host -j oe -o "$STDOUT_DIR" -J 1-$COUNT:$STEP_SIZE -v SCRIPT_DIR,STEP_SIZE,MER_SIZE,FILES_LIST,JELLYFISH,OUT_DIR,FASTA_SPLIT_DIR,MAX_JELLYFISH_INPUT_SIZE,KMERIZE_FILES $SCRIPT_DIR/jellyfish-count.sh)
+JOBS_ARG=""
+if [ $COUNT -gt 1 ]; then
+  JOBS_ARG="-J 1-$COUNT:$STEP_SIZE "
+fi
+
+EMAIL_ARG=""
+if [[ ! -z $EMAIL ]]; then
+  EMAIL_ARG="-M $EMAIL -m ea"
+fi
+
+GROUP_ARG="-W group_list=${GROUP:=bhurwitz}"
+
+export MAX_JELLYFISH_INPUT_SIZE=200
+JOB=$(qsub -N jf_host $GROUP_ARG $JOBS_ARG $EMAIL_ARG -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,STEP_SIZE,MER_SIZE,FILES_LIST,JELLYFISH,OUT_DIR,KMER_DIR,FASTA_SPLIT_DIR,MAX_JELLYFISH_INPUT_SIZE,KMERIZE_FILES $SCRIPT_DIR/jellyfish-count.sh)
 
 if [ $? -eq 0 ]; then
   echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Aloha.
