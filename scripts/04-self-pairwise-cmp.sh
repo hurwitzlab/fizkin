@@ -38,7 +38,14 @@ INPUT_FILES=$(mktemp)
 INPUT_FILE_NAME=${1:-''}
 if [ -n "$INPUT_FILE_NAME" ] && [ -e "$INPUT_FILE_NAME" ]; then
   echo Taking input files from \"$INPUT_FILE_NAME\"
-  cp $INPUT_FILE_NAME $INPUT_FILES
+
+  while read FILE; do
+    if [ -e $FILE ]; then
+      echo $FILE >> $FILES_LIST
+    else
+      echo Bad input file \"$FILE\"
+    fi
+  done < $INPUT_FILES_LIST
 else
   if [[ ! -d "$INPUT_DIR" ]]; then
     echo INPUT_DIR \"$INPUT_DIR\" does not exist
@@ -105,7 +112,19 @@ fi
 
 echo There are \"$NUM_PAIRS\" pairs to process 
 
-JOB=$(qsub -N "pair-cmp" -J 1-$NUM_PAIRS:$STEP_SIZE -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,SUFFIX_DIR,MODE_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST,STEP_SIZE $SCRIPT_DIR/pairwise-cmp.sh)
+JOBS_ARG=""
+if [ $NUM_PAIRS -gt 1 ]; then
+  JOBS_ARG="-J 1-$NUM_PAIRS:$STEP_SIZE"
+fi
+
+EMAIL_ARG=""
+if [[ ! -z $EMAIL ]]; then
+  EMAIL_ARG="-M $EMAIL -m ea"
+fi
+
+GROUP_ARG="-W group_list=${GROUP:=bhurwitz}"
+
+JOB=$(qsub -N "pair-cmp" $JOBS_ARG $EMAIL_ARG $GROUP_ARG -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,SUFFIX_DIR,MODE_DIR,READ_MODE_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST,STEP_SIZE $SCRIPT_DIR/pairwise-cmp.sh)
 
 if [ $? -eq 0 ]; then
   echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Adios.

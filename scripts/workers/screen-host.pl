@@ -4,9 +4,9 @@ use common::sense;
 use autodie;
 use Getopt::Long;
 use Cwd qw(cwd);
-use File::Basename qw(basename);
+use File::Basename qw(basename dirname);
 use File::Spec::Functions qw(catfile);
-use File::Path qw(mkpath);
+use File::Path qw(make_path);
 use Pod::Usage;
 use Readonly;
 
@@ -42,7 +42,7 @@ sub main {
     }
 
     unless (-d $out_dir) {
-        mkpath $out_dir;
+        make_path($out_dir);
     }
 
     my @files    = @ARGV or pod2usage('No input files');
@@ -56,6 +56,11 @@ sub main {
 
     my $reject_fh;
     if ($reject_file) {
+        my $dir = dirname($reject_file);
+        unless (-d $dir) {
+            make_path($dir);
+        }
+
         open $reject_fh, '>', $reject_file;
     }
 

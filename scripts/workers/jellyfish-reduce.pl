@@ -1,5 +1,7 @@
 #!/usr/bin/env perl
 
+$| = 1;
+
 use common::sense;
 use autodie;
 use File::Basename qw(dirname);
@@ -61,7 +63,7 @@ sub main {
     elsif ($out_file) {
         my $dir = dirname($out_file);
         unless (-d $dir) {
-            make_path $dir;
+            make_path($dir);
         }
 
         open $out_fh, '>', $out_file;
@@ -84,9 +86,11 @@ sub main {
         open $read_fh, '>', $read_file;
     }
 
-    my $count = 0;
+    my $num_matched = 0;
+    my $read_num    = 0;
     READ:
     while (my $loc = <$loc_fh>) {
+        $read_num++;
         chomp($loc);
         my ($read_id, $n_kmers) = split /\t/, $loc;
         my @vals = take($n_kmers, $in) or last;
@@ -96,21 +100,17 @@ sub main {
         my $mode = mode(@vals);
 
         if ($mode >= $mode_min) {
-            $count++;
+            $num_matched++;
             $seen{ $read_id }++ if $unique_file;
 
             if ($read_fh) {
-                say $read_fh join("\t", $read_id, $mode) 
+                say $read_fh join("\t", $read_num, $mode);
             }
         }
     }
 
-    if (my @leftover = <$in>) {
-        die "Error, you still have input but no more locations.\n";
-    }
-
     if ($out_fh) {
-        say $out_fh $count;
+        say $out_fh $num_matched;
     }
 
     if ($unique_file) {
