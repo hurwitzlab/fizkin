@@ -55,11 +55,12 @@ echo Processing \"$NUM_FILES\" input files
 #
 TMP_CHECKED=$(mktemp)
 MAX_MB=${MAX_JELLYFISH_INPUT_SIZE:-100}
+echo MAX_JELLYFISH_INPUT_SIZE \"$MAX_JELLYFISH_INPUT_SIZE\"
 while read FILE; do
   SIZE=$(du -m "$FILE" | cut -f 1)
 
   if [ $SIZE -ge $MAX_MB ]; then
-    echo Splitting $(basename $FILE)
+    echo Splitting $(basename $FILE) size = \"$SIZE\"
     $SCRIPT_DIR/fasta-split.pl -m $MAX_MB -f $FILE -o $FASTA_SPLIT_DIR
 
     BASENAME=$(basename $FILE)
