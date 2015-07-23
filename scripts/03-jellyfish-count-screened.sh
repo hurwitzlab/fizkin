@@ -30,7 +30,7 @@ if [[  ! -d $OUT_DIR ]]; then
   mkdir -p $OUT_DIR
 fi
 
-export FILES_LIST="$HOME/${PROG}.in"
+export FILES_LIST="$HOME/$$.in"
 
 if [ -e $FILES_LIST ]; then
   rm $FILES_LIST

@@ -41,7 +41,7 @@ find $HOST_BOWTIE_DIR -type f | sed "s/\.[0-9]\.bt2$//" | sed "s/\.rev$//" \
 TMP_FASTA_FILES=$(mktemp)
 find $INPUT_DIR -type f > $TMP_FASTA_FILES
 
-export FILES_LIST="${HOME}/${PROG}.in"
+export FILES_LIST="${HOME}/$$.in"
 if [ -e $FILES_LIST ]; then
   rm -f $FILES_LIST
 fi

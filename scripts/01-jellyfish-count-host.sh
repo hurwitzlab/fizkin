@@ -24,7 +24,7 @@ STDOUT_DIR="$CWD/out/$PROG"
 init_dirs "$STDOUT_DIR"
 init_dirs "$OUT_DIR"
 
-export FILES_LIST="$HOME/${PROG}.in"
+export FILES_LIST="$HOME/$$.in"
 
 if [ -e $FILES_LIST ]; then
   rm -f $FILES_LIST

@@ -36,7 +36,7 @@ fi
 #
 # Find input FASTA files
 #
-export FILES_LIST="${HOME}/${PROG}.in"
+export FILES_LIST="${HOME}/$$.in"
 
 #
 find $INPUT_DIR -type f > $FILES_LIST
