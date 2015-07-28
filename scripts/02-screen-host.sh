@@ -11,7 +11,7 @@
 set -u
 source ./config.sh
 export INPUT_DIR="$FASTA_DIR"
-export STEP_SIZE=1
+export STEP_SIZE=2
 
 # --------------------------------------------------
 
@@ -50,8 +50,8 @@ if [ $NUM_FILES -lt 1 ]; then
 fi
 
 JOBS_ARG=""
-if [ $NUM_FILES -gt 1 ]; then
-  JOBS_ARG="-J 1-$NUM_FILES:$STEP_SIZE "
+if [ $NUM_FILES -gt 1 ] && [ $STEP_SIZE -gt 1 ]; then
+  JOBS_ARG="-J 1-$NUM_FILES:$STEP_SIZE"
 fi
 
 EMAIL_ARG=""

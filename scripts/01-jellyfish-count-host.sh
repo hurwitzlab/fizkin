@@ -22,7 +22,6 @@ PROG=$(basename "$0" ".sh")
 STDOUT_DIR="$CWD/out/$PROG"
 
 init_dirs "$STDOUT_DIR"
-init_dirs "$OUT_DIR"
 
 export FILES_LIST="$HOME/${PROG}.in"
 
@@ -30,14 +29,29 @@ if [ -e $FILES_LIST ]; then
   rm -f $FILES_LIST
 fi
 
-i=0
-for SRC_DIR in $SOURCE_DIR; do
-  let i++
+INPUT_FILES_LIST=${1:-''}
+if [ -n "$INPUT_FILES_LIST" ] && [ -e "$INPUT_FILES_LIST" ]; then
+  echo Taking files from \"$INPUT_FILES_LIST\"
 
-  printf "%5d: %s\n" $i $SRC_DIR
+  while read FILE; do
+    if [ -e $FILE ]; then
+      echo $FILE >> $FILES_LIST
+    else
+      echo Bad input file \"$FILE\"
+    fi
+  done < $INPUT_FILES_LIST
+else
+  echo Taking files from \"$SOURCE_DIR\"
 
-  find $SRC_DIR -type f >> $FILES_LIST
-done
+  i=0
+  for SRC_DIR in $SOURCE_DIR; do
+    let i++
+
+    printf "%5d: %s\n" $i $SRC_DIR
+
+    find $SRC_DIR -type f >> $FILES_LIST
+  done
+fi
 
 COUNT=$(lc $FILES_LIST)
 
@@ -49,7 +63,7 @@ if [ $COUNT -lt 1 ]; then
 fi
 
 JOBS_ARG=""
-if [ $COUNT -gt 1 ]; then
+if [ $COUNT -gt 1 ] && [ $STEP_SIZE -gt 1 ]; then
   JOBS_ARG="-J 1-$COUNT:$STEP_SIZE "
 fi
 
