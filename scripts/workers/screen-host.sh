@@ -28,6 +28,11 @@ echo Started $(date)
 
 echo Host $(hostname)
 
+if [ -z $FILES_LIST ]; then
+  echo FILES_LIST not defined.
+  exit 1
+fi
+
 #
 # Find out what our input FASTA file is
 #
@@ -44,7 +49,9 @@ NUM_FILES=$(lc $TMP_FILES)
 
 echo Processing \"$NUM_FILES\" input files
 
-if [ $NUM_FILES -lt 0 ]; then
+cat -n $TMP_FILES
+
+if [ $NUM_FILES -lt 1 ]; then
   echo Could not get FASTA files from \"$FILES_LIST\"
   exit 1
 fi
@@ -67,13 +74,22 @@ while read FASTA; do
   # Find our target Jellyfish files
   #
   FASTA_BASE=$(basename $FASTA)
+  echo FASTA \"$FASTA_BASE\"
+
+  if [ -e "$SCREENED_DIR/$FASTA_BASE" ]; then
+    echo Screened file already exists, skipping.
+    continue
+  fi
+
   KMER_FILE="$KMER_DIR/${FASTA_BASE}.kmers"
   LOC_FILE="$KMER_DIR/${FASTA_BASE}.loc"
 
-  echo Kmerizing \"$FASTA_BASE\"
+  if [[ ! -e $KMER_FILE ]]; then
+    echo Kmerizing \"$FASTA_BASE\"
 
-  $SCRIPT_DIR/kmerizer.pl -q -i "$FASTA" -o "$KMER_FILE" \
-    -l "$LOC_FILE" -k "$MER_SIZE"
+    $SCRIPT_DIR/kmerizer.pl -q -i "$FASTA" -o "$KMER_FILE" \
+      -l "$LOC_FILE" -k "$MER_SIZE"
+  fi
 
   if [[ ! -e $KMER_FILE ]]; then
     echo Cannot find K-mer file \"$KMER_FILE\"
@@ -84,20 +100,18 @@ while read FASTA; do
   # The "host" file is what will be created in the querying
   # and will be passed to the "screen-host.pl" script
   #
-  PROG=$(basename $0 ".sh")
   TMPDIR="$DATA_DIR/tmp"
   if [[ ! -d $TMPDIR ]]; then
     mkdir -p $TMPDIR
   fi
 
-  HOST=$(mktemp --tmpdir="$TMPDIR" "${PROG}.XXXXXXX")
+  HOST=$(mktemp --tmpdir="$TMPDIR" "${FASTA_BASE}.XXXXXXX")
   touch $HOST
-  echo HOST $HOST
 
   i=0
   while read SUFFIX; do
     let i++
-    printf "%5d: Processing %s\n" $i $(basename $SUFFIX)
+    printf "%5d: Suffix %s\n" $i $(basename $SUFFIX)
 
     #
     # Note: no "-o" output file as we only care about the $HOST file
@@ -110,7 +124,8 @@ while read FASTA; do
 
   echo Screening with \"$HOST\"
 
-  $SCRIPT_DIR/screen-host.pl -h "$HOST" -o "$SCREENED_DIR" -r "$REJECTED_DIR/$FASTA_BASE" $FASTA
+  $SCRIPT_DIR/screen-host.pl -h "$HOST" -o "$SCREENED_DIR" \
+    -r "$REJECTED_DIR/$FASTA_BASE" $FASTA
 
   echo Removing temp files
   rm "$HOST"
