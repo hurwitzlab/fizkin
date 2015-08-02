@@ -40,12 +40,13 @@ export RAW_DIR="/rsgrps/bhurwitz/hurwitzlab/data/raw/Doetschman_20111007/all"
 #
 # Where to find the host genome for screening
 #
-export HOST_DIR="/rsgrps/bhurwitz/hurwitzlab/data/reference/mouse_genome/20141111 /rsgrps/bhurwitz/hurwitzlab/data/reference/soybean /rsgrps/bhurwitz/hurwitzlab/data/reference/yeast /rsgrps/bhurwitz/hurwitzlab/data/reference/wheat /rsgrps/bhurwitz/hurwitzlab/data/reference/medicago /rsgrps/bhurwitz/hurwitzlab/data/reference/zea_mays/v3"
+REF_DIR=/rsgrps/bhurwitz/hurwitzlab/data/reference
+export HOST_DIR="$REF_DIR/a_xylosoxidans $REF_DIR/mouse $REF_DIR/glycine_max $REF_DIR/yeast $REF_DIR/wheat $REF_DIR/medicago_truncatula $REF_DIR/zea_mays"
 
 #
 # Where to put the results of our steps
 #
-export HOST_JELLYFISH_DIR="$DATA_DIR/jellyfish/host"
+export HOST_JELLYFISH_DIR="/rsgrps/bhurwitz/kyclark/mouse/data/host-jellyfish"
 
 export HOST_BOWTIE_DIR="/rsgrps/bhurwitz/hurwitzlab/data/bowtie"
 
@@ -72,7 +73,7 @@ export COUNT_DIR="$DATA_DIR/counts"
 export MODE_DIR="$DATA_DIR/modes"
 export READ_MODE_DIR="$DATA_DIR/read-modes"
 export MATRIX_DIR="$DATA_DIR/matrix"
-export MAX_JELLYFISH_INPUT_SIZE=800 # MB
+export MAX_JELLYFISH_INPUT_SIZE=1000 # MB
 
 #
 # Some custom functions for our scripts

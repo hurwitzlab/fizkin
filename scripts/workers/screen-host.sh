@@ -58,7 +58,7 @@ fi
 
 SUFFIX_LIST=$(mktemp)
 
-find $HOST_JELLYFISH_DIR -name \*.jf > $SUFFIX_LIST
+find $HOST_JELLYFISH_DIR -name \*.jf | sort > $SUFFIX_LIST
 
 NUM_SUFFIXES=$(wc -l $SUFFIX_LIST | cut -d ' ' -f 1)
 
@@ -76,10 +76,10 @@ while read FASTA; do
   FASTA_BASE=$(basename $FASTA)
   echo FASTA \"$FASTA_BASE\"
 
-  if [ -e "$SCREENED_DIR/$FASTA_BASE" ]; then
-    echo Screened file already exists, skipping.
-    continue
-  fi
+#  if [ -e "$SCREENED_DIR/$FASTA_BASE" ]; then
+#    echo Screened file already exists, skipping.
+#    continue
+#  fi
 
   KMER_FILE="$KMER_DIR/${FASTA_BASE}.kmers"
   LOC_FILE="$KMER_DIR/${FASTA_BASE}.loc"

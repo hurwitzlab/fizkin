@@ -15,6 +15,8 @@ export STEP_SIZE=30
 export SOURCE_DIR="$HOST_DIR"
 export OUT_DIR=$HOST_JELLYFISH_DIR
 export KMERIZE_FILES=0
+export INPUT_GROUP_FILE=""
+export JELLYFISH_OUT_COUNTER_LEN=1
 
 # --------------------------------------------------
 
@@ -29,6 +31,10 @@ if [ -e $FILES_LIST ]; then
   rm -f $FILES_LIST
 fi
 
+if [[ ! -d $OUT_DIR ]]; then
+  mkdir -p $OUT_DIR
+fi
+
 INPUT_FILES_LIST=${1:-''}
 if [ -n "$INPUT_FILES_LIST" ] && [ -e "$INPUT_FILES_LIST" ]; then
   echo Taking files from \"$INPUT_FILES_LIST\"
@@ -41,16 +47,10 @@ if [ -n "$INPUT_FILES_LIST" ] && [ -e "$INPUT_FILES_LIST" ]; then
     fi
   done < $INPUT_FILES_LIST
 else
-  echo Taking files from \"$SOURCE_DIR\"
+  echo "Source dir(s)"
+  echo $SOURCE_DIR | sed "s/ /\n/g" | cat -n
 
-  i=0
-  for SRC_DIR in $SOURCE_DIR; do
-    let i++
-
-    printf "%5d: %s\n" $i $SRC_DIR
-
-    find $SRC_DIR -type f >> $FILES_LIST
-  done
+  find $SOURCE_DIR -type f > $FILES_LIST
 fi
 
 COUNT=$(lc $FILES_LIST)
@@ -63,8 +63,38 @@ if [ $COUNT -lt 1 ]; then
 fi
 
 JOBS_ARG=""
-if [ $COUNT -gt 1 ] && [ $STEP_SIZE -gt 1 ]; then
-  JOBS_ARG="-J 1-$COUNT:$STEP_SIZE "
+if [ $COUNT -gt 1 ]; then
+  JOBS_ARG="-J 1-$COUNT"
+
+  if [ $STEP_SIZE -gt 1 ]; then
+    JOBS_ARG="$JOBS_ARG:$STEP_SIZE"
+  fi
+fi
+
+DISTRIBUTOR=$SCRIPT_DIR/distributor.pl
+
+if [ -e $DISTRIBUTOR ]; then
+  echo Working to distribute files -- gimme a sec
+
+  FILE_SIZES=$(mktemp)
+  while read FILE; do
+    ls -l $FILE | awk '{print $5 " " $9}' >> $FILE_SIZES
+  done < $FILES_LIST
+
+  INPUT_GROUP_FILE=$HOME/$PROG.input_groups
+
+  $DISTRIBUTOR $FILE_SIZES > $INPUT_GROUP_FILE
+
+  rm $FILE_SIZES
+fi
+
+if [ ${INPUT_GROUP_FILE:="x"} != "x" ] && [ -e $INPUT_GROUP_FILE ]; then
+  LAST_GROUP=$(tail -n 1 $INPUT_GROUP_FILE | cut -f 1)
+
+  JOBS_ARG="-J 1-$LAST_GROUP"
+  STEP_SIZE=0
+
+  echo JOBS_ARG \"$JOBS_ARG\"
 fi
 
 EMAIL_ARG=""
@@ -74,8 +104,7 @@ fi
 
 GROUP_ARG="-W group_list=${GROUP:=bhurwitz}"
 
-export MAX_JELLYFISH_INPUT_SIZE=200
-JOB=$(qsub -N jf_host $GROUP_ARG $JOBS_ARG $EMAIL_ARG -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,STEP_SIZE,MER_SIZE,FILES_LIST,JELLYFISH,OUT_DIR,KMER_DIR,FASTA_SPLIT_DIR,MAX_JELLYFISH_INPUT_SIZE,KMERIZE_FILES $SCRIPT_DIR/jellyfish-count.sh)
+JOB=$(qsub -N jf_host $GROUP_ARG $JOBS_ARG $EMAIL_ARG -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,STEP_SIZE,MER_SIZE,FILES_LIST,JELLYFISH,OUT_DIR,KMER_DIR,FASTA_SPLIT_DIR,MAX_JELLYFISH_INPUT_SIZE,KMERIZE_FILES,INPUT_GROUP_FILE,JELLYFISH_OUT_COUNTER_LEN $SCRIPT_DIR/jellyfish-count.sh)
 
 if [ $? -eq 0 ]; then
   echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Aloha.
