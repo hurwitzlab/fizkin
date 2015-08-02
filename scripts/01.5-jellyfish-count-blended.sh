@@ -11,12 +11,10 @@
 set -u
 source ./config.sh
 export CWD=$PWD
-export STEP_SIZE=30
-export SOURCE_DIR="$HOST_DIR"
-export OUT_DIR=$HOST_JELLYFISH_DIR
+export STEP_SIZE=32 # must be a mutliple of 4
+export SOURCE_DIR=/rsgrps/bhurwitz/kyclark/mouse/data/host-sorted
+export OUT_DIR=/rsgrps/bhurwitz/kyclark/mouse/data/host-jellyfish
 export KMERIZE_FILES=0
-export INPUT_GROUP_FILE=""
-export JELLYFISH_OUT_COUNTER_LEN=1
 
 # --------------------------------------------------
 
@@ -25,7 +23,7 @@ STDOUT_DIR="$CWD/out/$PROG"
 
 init_dirs "$STDOUT_DIR"
 
-export FILES_LIST="$HOME/$$.in"
+export FILES_LIST="$HOME/${PROG}.in"
 
 if [ -e $FILES_LIST ]; then
   rm -f $FILES_LIST
@@ -50,7 +48,7 @@ else
   echo "Source dir(s)"
   echo $SOURCE_DIR | sed "s/ /\n/g" | cat -n
 
-  find $SOURCE_DIR -type f > $FILES_LIST
+  find $SOURCE_DIR -type f | sort > $FILES_LIST
 fi
 
 COUNT=$(lc $FILES_LIST)
@@ -71,32 +69,6 @@ if [ $COUNT -gt 1 ]; then
   fi
 fi
 
-DISTRIBUTOR=$SCRIPT_DIR/distributor.pl
-
-if [ -e $DISTRIBUTOR ]; then
-  echo Working to distribute files -- gimme a sec
-
-  FILE_SIZES=$(mktemp)
-  while read FILE; do
-    ls -l $FILE | awk '{print $5 " " $9}' >> $FILE_SIZES
-  done < $FILES_LIST
-
-  INPUT_GROUP_FILE=$HOME/$PROG.input_groups
-
-  $DISTRIBUTOR $FILE_SIZES > $INPUT_GROUP_FILE
-
-  rm $FILE_SIZES
-fi
-
-if [ ${INPUT_GROUP_FILE:="x"} != "x" ] && [ -e $INPUT_GROUP_FILE ]; then
-  LAST_GROUP=$(tail -n 1 $INPUT_GROUP_FILE | cut -f 1)
-
-  JOBS_ARG="-J 1-$LAST_GROUP"
-  STEP_SIZE=0
-
-  echo JOBS_ARG \"$JOBS_ARG\"
-fi
-
 EMAIL_ARG=""
 if [[ ! -z $EMAIL ]]; then
   EMAIL_ARG="-M $EMAIL -m ea"
@@ -104,7 +76,7 @@ fi
 
 GROUP_ARG="-W group_list=${GROUP:=bhurwitz}"
 
-JOB=$(qsub -N jf_host $GROUP_ARG $JOBS_ARG $EMAIL_ARG -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,STEP_SIZE,MER_SIZE,FILES_LIST,JELLYFISH,OUT_DIR,KMER_DIR,FASTA_SPLIT_DIR,MAX_JELLYFISH_INPUT_SIZE,KMERIZE_FILES,INPUT_GROUP_FILE,JELLYFISH_OUT_COUNTER_LEN $SCRIPT_DIR/jellyfish-count.sh)
+JOB=$(qsub -N jf_host $GROUP_ARG $JOBS_ARG $EMAIL_ARG -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,BIN_DIR,STEP_SIZE,MER_SIZE,FILES_LIST,JELLYFISH,OUT_DIR,KMER_DIR,FASTA_SPLIT_DIR,KMERIZE_FILES $SCRIPT_DIR/jellyfish-count-blended.sh)
 
 if [ $? -eq 0 ]; then
   echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Aloha.

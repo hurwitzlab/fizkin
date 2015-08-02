@@ -17,9 +17,9 @@ export STEP_SIZE=1
 
 CWD=$PWD
 PROG=$(basename $0 ".sh")
-STDOUT_DIR="$CWD/out/$PROG"
+PBSOUT_DIR="$CWD/out/$PROG"
 
-init_dirs "$STDOUT_DIR"
+init_dirs "$PBSOUT_DIR"
 
 if [[ ! -d "$SCREENED_DIR" ]]; then
   mkdir -p "$SCREENED_DIR"
@@ -51,7 +51,11 @@ fi
 
 JOBS_ARG=""
 if [ $NUM_FILES -gt 1 ]; then
-  JOBS_ARG="-J 1-$NUM_FILES:$STEP_SIZE "
+  JOBS_ARG="-J 1-$NUM_FILES"
+
+  if [ $STEP_SIZE -gt 1 ]; then
+    JOBS_ARG="$JOBS_ARG:$STEP_SIZE"
+  fi
 fi
 
 EMAIL_ARG=""
@@ -61,7 +65,7 @@ fi
 
 GROUP_ARG="-W group_list=${GROUP:=bhurwitz}"
 
-JOB=$(qsub -N "host-jf" $JOBS_ARG $EMAIL_ARG $GROUP_ARG -j oe -o "$STDOUT_DIR" -v FILES_LIST,DATA_DIR,SCRIPT_DIR,HOST_JELLYFISH_DIR,SCREENED_DIR,KMER_DIR,REJECTED_DIR,MER_SIZE,JELLYFISH,STEP_SIZE $SCRIPT_DIR/screen-host.sh)
+JOB=$(qsub -N "host-jf" $JOBS_ARG $EMAIL_ARG $GROUP_ARG -j oe -o "$PBSOUT_DIR" -v FILES_LIST,DATA_DIR,SCRIPT_DIR,HOST_JELLYFISH_DIR,SCREENED_DIR,KMER_DIR,REJECTED_DIR,MER_SIZE,JELLYFISH,STEP_SIZE $SCRIPT_DIR/screen-host.sh)
 
 if [ $? -eq 0 ]; then
   echo Submitted job \"$JOB\" for you. Sayonara.
