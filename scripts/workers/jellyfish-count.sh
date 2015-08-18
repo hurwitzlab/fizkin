@@ -101,8 +101,8 @@ while read FILE; do
     # 
     # Method 1: straight-up count
     # 
-    #$JELLYFISH count $OUT_COUNTER_LEN -m $MER_SIZE -s $HASH_SIZE \
-    #  -t $THREADS -o $JF_FILE $FILE
+    $JELLYFISH count $OUT_COUNTER_LEN -m $MER_SIZE -s $HASH_SIZE \
+      -t $THREADS -o $JF_FILE $FILE
 
     # 
     # Method 2: Bloom counter
@@ -115,8 +115,8 @@ while read FILE; do
     # 
     # Method 3: Bloom filter; fastest, small size
     # 
-    $JELLYFISH count $OUT_COUNTER_LEN -m $MER_SIZE -s $HASH_SIZE -t $THREADS \
-      --bf-size $HASH_SIZE -o $JF_FILE $FILE
+    #$JELLYFISH count $OUT_COUNTER_LEN -m $MER_SIZE -s $HASH_SIZE -t $THREADS \
+    #  --bf-size $HASH_SIZE -o $JF_FILE $FILE
   fi
 
   if [ ${KMERIZE_FILES:-0} -gt 0 ] && [[ ! -e $KMER_FILE ]]; then
