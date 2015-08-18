@@ -117,7 +117,7 @@ while read FASTA; do
     # Note: no "-o" output file as we only care about the $HOST file
     #
     $JELLYFISH query -i "$SUFFIX" < "$KMER_FILE" | \
-      $SCRIPT_DIR/jellyfish-reduce.pl -l "$LOC_FILE" -u $HOST --mode-min 2
+      $SCRIPT_DIR/jellyfish-reduce.pl -l "$LOC_FILE" -u $HOST --mode-min 1
   done < "$SUFFIX_LIST"
 
   echo Done querying/reducing to \"$i\" suffix files
