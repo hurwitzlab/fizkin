@@ -10,17 +10,17 @@
 
 set -u
 source ./config.sh
-INPUT_DIR="$FASTA_DIR"
+INPUT_DIR="$SCREENED_DIR"
 export SUFFIX_DIR="$JELLYFISH_DIR"
-export STEP_SIZE=90
+export STEP_SIZE=50
 
 # --------------------------------------------------
 
 CWD=$PWD
 PROG=$(basename $0 ".sh")
-STDOUT_DIR="$CWD/out/$PROG"
+PBSOUT_DIR="$CWD/out/$PROG"
 
-init_dirs "$STDOUT_DIR"
+init_dirs "$PBSOUT_DIR"
 
 if [[ ! -d "$MODE_DIR" ]]; then
   mkdir "$MODE_DIR"
@@ -98,8 +98,12 @@ if [ -e $FILES_LIST ]; then
 fi
 
 while read FASTA; do
+  FASTA_BASE=$(basename $FASTA)
   while read SUFFIX; do
-    echo "$FASTA $SUFFIX" >> $FILES_LIST
+    SUFFIX_BASE=$(basename $SUFFIX ".jf")
+    if [[ ! -s $MODE_DIR/$SUFFIX_BASE/$FASTA_BASE ]]; then
+      echo "$FASTA $SUFFIX" >> $FILES_LIST
+    fi
   done < $JELLYFISH_FILES
 done < $INPUT_FILES
 
@@ -124,7 +128,7 @@ fi
 
 GROUP_ARG="-W group_list=${GROUP:=bhurwitz}"
 
-JOB=$(qsub -N "pair-cmp" $JOBS_ARG $EMAIL_ARG $GROUP_ARG -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,SUFFIX_DIR,MODE_DIR,READ_MODE_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST,STEP_SIZE $SCRIPT_DIR/pairwise-cmp.sh)
+JOB=$(qsub -N "pair-cmp" $JOBS_ARG $EMAIL_ARG $GROUP_ARG -j oe -o "$PBSOUT_DIR" -v SCRIPT_DIR,SUFFIX_DIR,MODE_DIR,READ_MODE_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST,STEP_SIZE $SCRIPT_DIR/pairwise-cmp.sh)
 
 if [ $? -eq 0 ]; then
   echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Adios.
