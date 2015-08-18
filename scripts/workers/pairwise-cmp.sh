@@ -66,6 +66,11 @@ while read FASTA SUFFIX; do
   MODE_OUT_DIR="$MODE_DIR/$SUFFIX_BASE"
   OUT_FILE="$MODE_OUT_DIR/$FASTA_BASE"
 
+  if [[ -e $OUT_FILE ]]; then
+    echo OUT_FILE \"$OUT_FILE\" already exists. Skipping.
+    continue
+  fi
+
   if [[ ! -d $MODE_OUT_DIR ]]; then
     mkdir -p $MODE_OUT_DIR
   fi
