@@ -15,12 +15,14 @@ main();
 
 # --------------------------------------------------
 sub main {
-    my $dir = '';
+    my $dir   = '';
+    my $regex = '';
     my ($help, $man_page);
     GetOptions(
-        'd|dir=s' => \$dir,
-        'help'    => \$help,
-        'man'     => \$man_page,
+        'd|dir=s'   => \$dir,
+        'r|regex:s' => \$regex,
+        'help'      => \$help,
+        'man'       => \$man_page,
     ) or pod2usage(2);
 
     if ($help || $man_page) {
@@ -45,14 +47,26 @@ sub main {
         pod2usage("Cannot find anything to work on.");
     }
 
-    process(\@files);
+    process(\@files, $regex);
 
     say "Done.";
 }
 
 # --------------------------------------------------
+sub xform {
+    my ($regex, $string) = @_;
+
+    if ($regex && $string =~ /($regex)/) {
+        $string = $1;
+    } 
+
+    return $string;
+}
+
+# --------------------------------------------------
 sub process {
     my $files   = shift;
+    my $regex   = shift;
     my $n_files = scalar @$files or return;
     my $i       = 0;
     my %matrix;
@@ -64,8 +78,8 @@ sub process {
             printf STDERR "%-70s\r", sprintf("%3d%%", int($i*100/$n_files));
         }
 
-        my $sample1 = basename(dirname($file));
-        my $sample2 = basename($file);
+        my $sample1 = xform($regex, basename(dirname($file)));
+        my $sample2 = xform($regex, basename($file));
 
         chomp(my $n = `cat $file`);
 
