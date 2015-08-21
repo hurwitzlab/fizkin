@@ -88,9 +88,9 @@ sub process {
 #        my $n = <$fh>;
 #        close $fh;
 
-        $n ||= 0;
-
-        $matrix{ $sample1 }{ $sample2 } = sprintf('%.2f', $n>0 ? log($n) : $n);
+        if ($n) {
+            $matrix{ $sample1 }{ $sample2 } += $n;
+        }
     }
     print STDERR "\n";
 
@@ -99,9 +99,11 @@ sub process {
 
     say join "\t", '', @all_keys;
     for my $sample1 (@all_keys) {
+        my @vals = map { $matrix{ $sample1 }{ $_ } || 0 } @all_keys;
+
         say join "\t", 
             $sample1, 
-            map { $matrix{ $sample1 }{ $_ } || 0 } @all_keys,
+            map { sprintf('%.2f', $_ > 0 ? log($_) : 0) } @vals,
         ;
     }
 }
