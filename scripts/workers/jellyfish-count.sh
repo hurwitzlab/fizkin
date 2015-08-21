@@ -119,7 +119,7 @@ while read FILE; do
       --bf-size $HASH_SIZE -o $JF_FILE $FILE
   fi
 
-  if [ ${KMERIZE_FILES:-0} -gt 0 ] && [[ ! -e $KMER_FILE ]]; then
+  if [[ ! -e $KMER_FILE ]]; then
     $KMERIZER -q -i "$FILE" -o "$KMER_FILE" -l "$LOC_FILE" -k "$MER_SIZE"
   fi
 done < $TMP_FILES
