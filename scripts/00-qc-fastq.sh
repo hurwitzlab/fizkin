@@ -40,7 +40,7 @@ fi
 
 echo RAW_DIR \"$RAW_DIR\"
 
-export FILES_LIST="${HOME}/${PROG}.in"
+export FILES_LIST="${HOME}/$$.in"
 
 #
 # find those RNA files!

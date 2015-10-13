@@ -34,14 +34,14 @@ fi
 # Find all the input files
 #
 INPUT_FILES=$(mktemp)
-
 INPUT_FILE_NAME=${1:-''}
+
 if [ -n "$INPUT_FILE_NAME" ] && [ -e "$INPUT_FILE_NAME" ]; then
   echo Taking input files from \"$INPUT_FILE_NAME\"
 
   while read FILE; do
     if [ -e $FILE ]; then
-      echo $FILE >> $FILES_LIST
+      echo $FILE >> $INPUT_FILES
     else
       echo Bad input file \"$FILE\"
     fi
@@ -71,7 +71,7 @@ fi
 JELLYFISH_FILES=$(mktemp)
 
 while read FASTA; do
-    find $JELLYFISH_DIR -name $(basename $FASTA).jf >> $JELLYFISH_FILES
+  find $JELLYFISH_DIR -name $(basename $FASTA).jf >> $JELLYFISH_FILES
 done < $INPUT_FILES
 
 NUM_JF_FILES=$(lc $JELLYFISH_FILES)
