@@ -2,7 +2,7 @@
 
 #PBS -W group_list=bhurwitz
 #PBS -q standard
-#PBS -l jobtype=serial
+#PBS -l jobtype=cluster_only
 #PBS -l select=1:ncpus=2:mem=10gb
 #PBS -l pvmem=20gb
 #PBS -l place=pack:shared
