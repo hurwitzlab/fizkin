@@ -19,14 +19,18 @@ main();
 # --------------------------------------------------
 sub main {
     my $out_dir    = cwd();
-    my $metadata   = '';
+    my $metadir    = '';
+    my $euc_dist_per = 0.10;
+    my $max_sample_distance = 1000;
     my $seq_matrix = '';
     my $verbose    = 0;
     my ($help, $man_page);
 
     GetOptions(
         'o|out-dir=s'    => \$out_dir,
-        'm|metadata=s'   => \$metadata,
+        'm|metadir=s'    => \$metadir,
+        'e|eucdistper=s' => \$euc_dist_per,
+        'd|sampledist=s' => \$max_sample_distance,
         's|seq-matrix=s' => \$seq_matrix,
         'v|verbose'      => \$verbose,
         'help'           => \$help,
@@ -44,93 +48,66 @@ sub main {
         pod2usage('No sequence matrix');
     }
 
-    unless ($metadata) {
-        pod2usage('No metadata file');
+    unless ($metadir) {
+        pod2usage('No metadata directory specified');
     }
 
     # step 1 create the metadata tables for the analysis
-    # the input is in the format -> id<tab>@metadata (with a header)
-    # an output table is created for each metadata field (name = header)
-    # the output table has values:
-    # 0 =  not the same between pairwise samples 
-    # 1 =  the same between pairwise samples
-    # these metadata tables match the seq_matrix in format
-    # also note the ids and their order should be consistent
-    # between the metadata tables and seq_matrix
+    # the input is in the format -> id<tab>metadata_value (with a header)
+    # input file either need to be:
+    # (1) ".ll" for lat_lon
+    # (2) ".c" for continous data
+    # (3) ".d" for decrete
+    # this is how we tell which subroutine to use for creating the
+    # metadata matrix files for input into SNA
 
-    open my $M, '<', $metadata;
-    my @meta = (); #metadata types
-    my %sample_to_metadata = ();
-    my @samples;
+    #my $dist_matrix = distance_metadata_matrix();
+    #my $cont_matrix = continuous_metadata_matrix();
+    #my $disc_matrix = discrete_metadata_matrix(); 
 
-    my $i = 0;
-    while (my $line = <$M>) {
-       $i++;
-       chomp $line;
-
-       # get the header to define types of metadata
-       if ($i == 1) { 
-          @meta = split /\t/, $line;
-          shift @meta; # remove id
+    opendir(my $dh, $metadir) || die "no metadata directory specified\n";
+    my @meta = ();
+    while(readdir $dh) {
+       my $file = $_;
+       if($file eq "." || $file eq ".."){ next;}
+       my $matrix_file = '';
+       if ($_ =~ /\.d$/) {
+          $matrix_file = discrete_metadata_matrix($file,$metadir,$out_dir);
+          push @meta, $matrix_file;
+       } 
+       if ($_ =~ /\.c$/) {
+          $matrix_file = continuous_metadata_matrix($file, $euc_dist_per, $metadir, $out_dir);
+          push @meta, $matrix_file;
+          #print "$matrix_file matrix\n";
        }
-       else {
-          my @values = split /\t/, $line;
-          my $id = shift @values;
-          push @samples, $id;
-          for my $m (@meta) {
-             my $v = shift @values;
-             $sample_to_metadata{ $id }{ $m } = $v;
-          }
-       }
+       if ($_ =~ /\.ll$/) {
+          $matrix_file = distance_metadata_matrix($file, $max_sample_distance, $metadir, $out_dir );
+          push @meta, $matrix_file;
+       } 
     }
+    closedir $dh;
 
-    # create a file for each column in the metadata 
-    # for each pairwise combination of samples
-    # where 0 means they differ
-    # and 1 means they are the same
-
-    for my $m (@meta) {
-       open my $OUT, '>', "$m.txt";
-       say $OUT join "\t", '', @samples;
-       close $OUT;
-    }
-
-    # note that we sort samples to keep them in the same order as the
-    # input seq_matrix table
-    for my $id (sort @samples) {
-        for my $m (@meta) {
-            open my $OUT, '>>', "$m.txt";
-            my @same_or_not = ();
-            for my $s (sort @samples) {
-                my $s1 = $sample_to_metadata{$id}{$m};
-                my $s2 = $sample_to_metadata{$s}{$m};
-
-                push @same_or_not, $s1 eq $s2;
-            }
-
-            say $OUT join "\t", $id, @same_or_not;
-            close $OUT;
-        }
-    }
-
-            
     # now we need to run the SNA analysis
-    # be sure that `module load R` has laready been run in the
+    # be sure that `module load R` has already been run in the
     # shell script that runs this perl script on the 
     # compute node
+    print "defining subroutines\n";
     my $t         = Template->new;
     my $sna_tmpl  = template_sna();
     my $plot_tmpl = template_plot();
 
+    print "creating SNA template\n";
     $t->process(
         \$sna_tmpl, 
         { 
             out_dir    => $out_dir,
             seq_matrix => $seq_matrix,
+            meta       => \@meta,
         }, 
         'sna.R'
     ) or die $t->error;
 
+    print "creating plot template\n";
     $t->process(
         \$plot_tmpl, 
         { 
@@ -140,8 +117,8 @@ sub main {
         'plot.R'
     ) or die $t->error;
 
-    my $cmd1 = `R CMD BATCH --slave sna.R`;
-    my $cmd2 = `R CMD BATCH --slave plot.R`;
+    ##my $cmd1 = `R CMD BATCH --slave sna.R`;
+    ##my $cmd2 = `R CMD BATCH --slave plot.R`;
 }
 
 # --------------------------------------------------
@@ -159,7 +136,7 @@ Xss<-array(NA, dim=c(n,n,k))
 [% SET counter = 0 -%]
 [% FOREACH m IN meta -%]
    [% SET counter=count + 1 -%]
-   [% m %] <- as.matrix(read.table("[% m %].txt", header = TRUE))
+   [% m %] <- as.matrix(read.table("[% m %]", header = TRUE))
    Xss[,, [% counter%] ] <- [% m %]
 [% END -%]
 
@@ -180,10 +157,15 @@ sub template_plot {
     return <<EOF
 setwd("[% out_dir %]")
 source("gbme.r")
+#examine marginal mixing
+par(mfrow=c(3,4))      
+pdf("plot1.pdf", width=7, height=0.6*7)
+for(i in 3:dim(OUT)[2]) { plot(OUT[,i],type="l") }
+dev.off()
 # posterior samples, dropping
 # the first half of the chain
 # to allow for burn in
-PS<-OUT[OUT[% scan %]>round(max(OUT[% scan %])/2),-(1:3)]  
+PS<-OUT[OUT\$scan>round(max(OUT\$scan)/2),-(1:3)]
 
 #gives mean, std dev, and .025,.5,.975 quantiles
 M.SD.Q<-rbind( apply(PS,2,mean),apply(PS,2,sd)
@@ -192,19 +174,20 @@ M.SD.Q<-rbind( apply(PS,2,mean),apply(PS,2,sd)
 print(M.SD.Q)
 
 #plots of posterior densities
+pdf("plot2.pdf", width=7, height=0.6*7)
 par(mfrow=c(3,4))
 for(i in 1:dim(PS)[2]) { plot(density(PS[,i]),main=colnames(PS)[i]) }
-
-postscript("Zgraph2.eps", width = 12, height = 17, horizontal = FALSE,onefile = FALSE, paper = "special", colormodel = "cmyk",family = "Courier")"
+dev.off()
 
 ###analysis of latent positions
+
 Z<-read.table("Z")
 
 #convert to an array
 nss<-dim(OUT)[1]
 n<-dim(Z)[1]/nss
-k<-dim(Z)[2]
 PZ<-array(dim=c(n,k,nss))
+k<-dim(Z)[2]
 for(i in 1:nss) { PZ[,,i]<-as.matrix(Z[ ((i-1)*n+1):(i*n) ,])  }
 
 PZ<-PZ[,,-(1:round(nss/2))]     #drop first half for burn in
@@ -235,6 +218,7 @@ if(k==2) {
     b<-b/max(b)
 
     par(mfrow=c(1,1))
+    pdf("plot2.pdf", width=7, height=0.6*7)
     plot(Z.pm[,1],Z.pm[,2],xlab="",ylab="",type="n",xlim=range(PZ[,1,])
          ylim=range(PZ[,2,]))
     abline(h=0,lty=2);abline(v=0,lty=2)
@@ -246,129 +230,389 @@ if(k==2) {
     [% END -%]
     text(Z.pm[,1],Z.pm[,2], cex = 0.3, labels=c([% labels.join(',') %]))   #add labels here
 }
-
-postscript("Zgraph3.eps", width = 12, height = 17, horizontal = FALSE,onefile = FALSE, paper = "special", colormodel = "cmyk",family = "Courier")"
+    dev.off()
 EOF
 }
 
-#    # first part is to run the SNA analysis
-#    open (R1, ">sna.R") || die "Cannot open sna.R for writing\n";
-#
-#    print R1 'setwd("', $out_dir, '")', "\n";
-#    print R1 'library(xtable)', "\n";
-#    print R1 'NS <- 100000', "\n";       
-#    print R1 'odens <- 10', "\n";
-#    print R1 'source("gbme.r")', "\n";
-#    print R1 'Y <- as.matrix(read.table("', $seq_matrix, '", header = TRUE))', "\n";
-#    print R1 'n <- nrow(Y)', "\n";
-#
-#    my $meta_count = @meta;
-#    my $counter = 0;
-#    print R1 'k <- ', $meta_count, "\n";
-#    print R1 'Xss<-array(NA, dim=c(n,n,k))', "\n";
-#    for my $m (@meta) {
-#       $counter++;
-#       print R1 $m, ' <- as.matrix(read.table("', $m , '.txt", header = TRUE))', "\n";
-#       print R1 'Xss[,,', $counter, '] <- ', $m, "\n"; 
-#    }
-#
-#    print R1 'gbme(Y=Y, Xss, fam="gaussian", k=2, direct=F, NS=NS, odens=odens)', "\n";
-#
-#    print R1 'x.names <- c("', join(@meta, '", "'), '", "intercept")', "\n";
-#
-#    print R1 'OUT <- read.table("OUT", header=T)', "\n";
-#    print R1 'full.model <- t(apply(OUT, 2, quantile, c(0.5, 0.025, 0.975)))', "\n";
-#    print R1 'rownames(full.model)[1:', $meta_count, '] <- x.names', "\n";
-#    print R1 'table1 <- xtable(full.model[1:', $meta_count, ',], align="c|c||cc")', "\n";
-#    print R1 'print ( xtable (table1), type= "latex" , file= "table1.tex" )', "\n";
-#    close R1;
-#
-#    my $cmd1 = `R CMD BATCH --slave sna.R`;
-#
-#    ## create the plot
-#    open (R2, ">plot.R") || die "Cannot open sna.R for writing\n";
-#
-#    print R2 'setwd("', $out_dir, '")', "\n";
-#    print R2 'source("gbme.r")', "\n";
-#
-#    print R2 'OUT<-read.table("OUT",header=T)             #read in output', "\n";
-#    print R2 '', "\n";
-#    print R2 'par(mfrow=c(3,4))                           #examine marginal mixing', "\n";
-#    print R2 'for(i in 3:dim(OUT)[2]) { plot(OUT[,i],type="l") }', "\n";
-#    print R2 '', "\n";
-#    print R2 'postscript(“Zgraph1.eps", width = 12, height = 17, horizontal = FALSE,onefile = FALSE, paper = "special", colormodel = "cmyk",family = "Courier")"', "\n";
-#    print R2 '', "\n";
-#    print R2 '', "\n";
-#    print R2 'PS<-OUT[OUT$scan>round(max(OUT$scan)/2),-(1:3)]  #posterior samples, dropping', "\n";
-#    print R2 '                                                 #the first half of the chain', "\n";
-#    print R2 '                                                 #to allow for burn in', "\n";
-#    print R2 '', "\n";
-#    print R2 '#gives mean, std dev, and .025,.5,.975 quantiles', "\n";
-#    print R2 'M.SD.Q<-rbind( apply(PS,2,mean),apply(PS,2,sd),', "\n";
-#    print R2 '                apply(PS,2,quantile,probs=c(.025,.5,.975)) )', "\n";
-#    print R2 '', "\n";
-#    print R2 'print(M.SD.Q)', "\n";
-#    print R2 '', "\n";
-#    print R2 '#plots of posterior densities', "\n";
-#    print R2 'par(mfrow=c(3,4))', "\n";
-#    print R2 'for(i in 1:dim(PS)[2]) { plot(density(PS[,i]),main=colnames(PS)[i]) }', "\n";
-#    print R2 '', "\n";
-#    print R2 'postscript(“Zgraph2.eps", width = 12, height = 17, horizontal = FALSE,onefile = FALSE, paper = "special", colormodel = "cmyk",family = "Courier")"', "\n";
-#    print R2 '', "\n";
-#    print R2 '###analysis of latent positions', "\n";
-#    print R2 'Z<-read.table("Z")', "\n";
-#    print R2 '', "\n";
-#    print R2 '#convert to an array', "\n";
-#    print R2 'nss<-dim(OUT)[1]', "\n";
-#    print R2 'n<-dim(Z)[1]/nss', "\n";
-#    print R2 'k<-dim(Z)[2]', "\n";
-#    print R2 'PZ<-array(dim=c(n,k,nss))', "\n";
-#    print R2 'for(i in 1:nss) { PZ[,,i]<-as.matrix(Z[ ((i-1)*n+1):(i*n) ,])  }', "\n";
-#    print R2 '', "\n";
-#    print R2 'PZ<-PZ[,,-(1:round(nss/2))]     #drop first half for burn in', "\n";
-#    print R2 '', "\n";
-#    print R2 '#find posterior mean of Z %*% t(Z)', "\n";
-#    print R2 'ZTZ<-matrix(0,n,n)', "\n";
-#    print R2 'for(i in 1:dim(PZ)[3] ) { ZTZ<-ZTZ+PZ[,,i]%*%t(PZ[,,i]) }', "\n";
-#    print R2 'ZTZ<-ZTZ/dim(PZ)[3]', "\n";
-#    print R2 '', "\n";
-#    print R2 '#a configuration that approximates posterior mean of ZTZ', "\n";
-#    print R2 'tmp<-eigen(ZTZ)', "\n";
-#    print R2 'Z.pm<-tmp$vec[,1:k]%*%sqrt(diag(tmp$val[1:k]))', "\n";
-#    print R2 '', "\n";
-#    print R2 '#now transform each sample Z to a common orientation', "\n";
-#    print R2 'for(i in 1:dim(PZ)[3] ) { PZ[,,i]<-proc.rr(PZ[,,i],Z.pm) }', "\n";
-#    print R2 '', "\n";
-#    print R2 '#', "\n";
-#    print R2 'if(k==2) {     # a two dimensional plot of "mean" latent locations and marginal confidence regions', "\n";
-#    print R2 '', "\n";
-#    print R2 'r<-atan2(Z.pm[,2],Z.pm[,1])', "\n";
-#    print R2 'r<-r+abs(min(r))', "\n";
-#    print R2 'r<-r/max(r)', "\n";
-#    print R2 'g<-1-r', "\n";
-#    print R2 'b<-(Z.pm[,2]^2+Z.pm[,1]^2)', "\n";
-#    print R2 'b<-b/max(b)', "\n";
-#    print R2 '', "\n";
-#    print R2 'par(mfrow=c(1,1))', "\n";
-#    print R2 'plot(Z.pm[,1],Z.pm[,2],xlab="",ylab="",type="n",xlim=range(PZ[,1,]),', "\n";
-#    print R2 '     ylim=range(PZ[,2,]))', "\n";
-#    print R2 'abline(h=0,lty=2);abline(v=0,lty=2)', "\n";
-#    print R2 '', "\n";
-#    print R2 'for(i in 1:n) { points( PZ[i,1,],PZ[i,2,],pch=46,col=rgb(r[i],g[i],b[i]) ) }', "\n";
-#    print R2 'text(Z.pm[,1],Z.pm[,2], cex = 0.3, labels=c(', "\n";
-#    for my $id (@samples) {
-#       print R2 "'", $id, "',", "\n";
-#    }
-#    print R2 '))   #add labels here', "\n";
-#    print R2 '    {', "\n";
-#    print R2 'postscript(“Zgraph3.eps", width = 12, height = 17, horizontal = FALSE,onefile = FALSE, paper = "special", colormodel = "cmyk",family = "Courier")"', "\n"; 
-#    #print R2 'print ( type= "eps" , file= "Zgraph3.eps" )', "\n";
-#    #print R2 'dev.print(device=postscript, "Zgraph3.eps", onefile=FALSE, horizontal=FALSE)', "\n";
-#
-#
-#    my $cmd2 = `R CMD BATCH --slave plot.R`;
-#}
+#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#:::  This routine creates the metadata distance matrix based on lat/lon     :::
+#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+sub distance_metadata_matrix {
+   # in_file contains sample, latitude, and longitude in K (Kilometers)
+   # similarity distance is equal to the max distances in K for samples to be
+   # considered "close", default = 1000
+   my ($in_file, $similarity_distance, $metadir, $out_dir) = @_; 
+   open (IN, "$metadir/$in_file") || die "Cannot open $in_file\n";
+   my @meta = ();
+   my %sample_to_metadata = ();
+   my @samples;
+   my $pi = atan2(1,1) * 4;
+   
+   # a test and expected degrees
+   #print distance(32.9697, -96.80322, 29.46786, -98.53506, "M") . " Miles\n";
+   #print distance(32.9697, -96.80322, 29.46786, -98.53506, "K") . " Kilometers\n";
+   #print distance(32.9697, -96.80322, 29.46786, -98.53506, "N") . " Nautical Miles\n";
+   
+   my $i = 0;
+   while (<IN>) {
+      $i++;
+      chomp $_;
+   
+      if ($i == 1) { 
+         @meta = split (/\t/, $_);
+         shift @meta; # remove id
+      }
+      else {
+         my @values = split (/\t/, $_);
+         my $id = shift @values;
+         push (@samples, $id);
+         for my $m (@meta) {
+            my $v = shift @values;
+            $sample_to_metadata{$id}{$m} = $v;
+         }
+      }
+   }
+   
+   # create a file that calculates the distance between two geographic points
+   # for each pairwise combination of samples
+   
+   open (OUT, ">$out_dir/$in_file.meta") || die "Cannot open metadata file $in_file.meta\n";
+   print OUT "\t", join("\t", @samples), "\n";
+   close OUT;
+   
+   # approximate radius of earth in km
+   my $r = 6373.0;
+   
+   for my $id (sort @samples) {
+     my @dist = ();
+     for my $s (@samples) {
+         my @a = ();  #metavalues for A lat/lon
+         my @b = ();  #metavalues for B lat/lon
+         for my $m (@meta) {
+            my $s1 = $sample_to_metadata{$id}{$m};
+            my $s2 = $sample_to_metadata{$s}{$m};
+            if (($s1 eq 'NA') || ($s2 eq 'NA')) {
+               $s1 = 0;
+               $s2 = 0;
+            }
+            push (@a, $s1);
+            push (@b, $s2);
+        }
+        #pairwise dist in km between A and B
+        my $lat1 = $a[0];
+        my $lat2 = $b[0];
+        my $lon1 = $a[1];
+        my $lon2 = $b[1];
+        my $unit = 'K';
+        my $d = 0;
+        if (($lat1 != $lat2) && ($lon1 != $lon2)) {
+           $d = distance($lat1, $lon1, $lat2, $lon2, $unit); 
+        }
+   
+        # close = 1
+        # far = 0
+        my $closeness = 0;
+        if ($d < $similarity_distance) {
+           $closeness = 1;
+        }
+        push @dist, $closeness;
+   
+    }
+   
+    open (OUT, ">>$out_dir/$in_file.meta") || die "Cannot open metadata file $in_file.meta\n";
+    print OUT "$id\t", join("\t", @dist), "\n";
+    close OUT;
+   }
+   return ("$in_file.meta");
+}
 
+#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#:::                                                                         :::
+#:::  This routine calculates the distance between two points (given the     :::
+#:::  latitude/longitude of those points). It is being used to calculate     :::
+#:::  the distance between two locations                                     :::
+#:::                                                                         :::
+#:::  Definitions:                                                           :::
+#:::    South latitudes are negative, east longitudes are positive           :::
+#:::                                                                         :::
+#:::  Passed to function:                                                    :::
+#:::    lat1, lon1 = Latitude and Longitude of point 1 (in decimal degrees)  :::
+#:::    lat2, lon2 = Latitude and Longitude of point 2 (in decimal degrees)  :::
+#:::    unit = the unit you desire for results                               :::
+#:::           where: 'M' is statute miles (default)                         :::
+#:::                  'K' is kilometers                                      :::
+#:::                  'N' is nautical miles                                  :::
+#:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+sub distance {
+    my ($lat1, $lon1, $lat2, $lon2, $unit) = @_;
+    #print "$lat1, $lon1, $lat2, $lon2, $unit \n";
+    my $theta = $lon1 - $lon2;
+    my $dist = sin(deg2rad($lat1)) * sin(deg2rad($lat2)) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta));
+  $dist  = acos($dist);
+  $dist = rad2deg($dist);
+  $dist = $dist * 60 * 1.1515;
+  if ($unit eq "K") {
+    $dist = $dist * 1.609344;
+  } elsif ($unit eq "N") {
+    $dist = $dist * 0.8684;
+        }
+    return ($dist);
+}
+ 
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#:::  This function get the arccos function using arctan function   :::
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+sub acos {
+    my ($rad) = @_;
+    my $ret = atan2(sqrt(1 - $rad**2), $rad);
+    return $ret;
+}
+ 
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#:::  This function converts decimal degrees to radians             :::
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+sub deg2rad {
+    my ($deg) = @_;
+    my $pi = atan2(1,1) * 4;
+    return ($deg * $pi / 180);
+}
+ 
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#:::  This function converts radians to decimal degrees             :::
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+sub rad2deg {
+    my ($rad) = @_;
+    my $pi = atan2(1,1) * 4;
+    return ($rad * 180 / $pi);
+}
+
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+##:::  This routine creates the metadata matrix based on continuous data values :::
+##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+sub continuous_metadata_matrix {
+   # in_file contains sample, metadata (continous values) e.g. temperature
+   # euclidean distance percentage = the bottom X percent when sorted low to high
+   # considered "close", default = bottom 10 percent
+   
+   my ($in_file, $eucl_dist_per,$metadir, $out_dir) = @_;
+   open (IN, "$metadir/$in_file") || die "Cannot open $in_file\n";   
+   my @meta = ();
+   my %sample_to_metadata = ();
+   my @samples;
+   
+   my $i = 0;
+   while (<IN>) {
+      $i++;
+      chomp $_;
+   
+      if ($i == 1) { 
+         @meta = split (/\t/, $_);
+         shift @meta; # remove id
+      }
+      else {
+         my @values = split (/\t/, $_);
+         my $id = shift @values;
+         push (@samples, $id);
+         for my $m (@meta) {
+            my $v = shift @values;
+            $sample_to_metadata{$id}{$m} = $v;
+         }
+      }
+   }
+   
+   # create a file that calculates the eucledean distance for each value in the metadata file
+   # for each pairwise combination of samples
+   # where the value gives the eucledean distance 
+   # for example "nutrients" might be comprised of nitrite, phosphate, silica
+   
+   open (OUT, ">$out_dir/$in_file.meta") || die "Cannot open metadata file $in_file.meta\n";
+   print OUT "\t", join("\t", @samples), "\n";
+   close OUT;
+   
+   # get all euc distances to determine what is reasonably "close"
+   my @all_eucledean = ();
+   for my $id (@samples) {
+     my @pw_dist = ();
+     for my $s (@samples) {
+         my @a = ();  #metavalues for A
+         my @b = ();  #metavalues for B
+         for my $m (@meta) {
+            my $s1 = $sample_to_metadata{$id}{$m};
+            my $s2 = $sample_to_metadata{$s}{$m};
+            push (@a, $s1);
+            push (@b, $s2);
+        }
+        my $ct = @a;
+        $ct = $ct - 1;
+   
+        my $sum = 0;
+        #pairwise euc dist between A and B
+        for my $i ( 0 .. $ct) {
+           if (($a[$i] ne 'NA') && ($b[$i] ne 'NA')) {
+              my $value = ($a[$i]-$b[$i])**2;
+              $sum = $sum + $value;
+           }
+        }
+        # we have a sample that is different s1 ne s2
+        # there are no 'NA' values
+        if ($sum > 0) {
+           my $euc_dist = sqrt( $sum );
+           push @all_eucledean, $euc_dist;
+           #print "$euc_dist\n";
+        }
+     }
+   }
+   
+   my @sorted = sort @all_eucledean;
+   my $count = @sorted;
+   #print "count $count";
+   my $bottom_per = $count - int($eucl_dist_per * $count);
+   #print "bottom $bottom_per\n";
+   my $max_value = $sorted[$bottom_per];
+   my $smallest_value = $sorted[0];
+   
+   #print "max euc dist: $max_value\n";
+   
+   
+   for my $id (sort @samples) {
+     my @pw_dist = ();
+     my @eucledean_dist = ();
+     for my $s (@samples) {
+         my @a = ();  #metavalues for A
+         my @b = ();  #metavalues for B
+         for my $m (@meta) {
+            my $s1 = $sample_to_metadata{$id}{$m};
+            my $s2 = $sample_to_metadata{$s}{$m};
+            push (@a, $s1);
+            push (@b, $s2);
+        }
+        my $ct = @a;
+        $ct = $ct - 1;
+   
+        my $sum = 0;
+        #pairwise euc dist between A and B
+        for my $i ( 0 .. $ct) {
+           if (($a[$i] ne 'NA') && ($b[$i] ne 'NA')) {
+              my $value = ($a[$i]-$b[$i])**2;
+              $sum = $sum + $value;
+           }
+        }
+        #print "$sum\n";
+        
+       if ($sum > 0) { 
+           my $euc_dist = sqrt( $sum );
+           push @eucledean_dist, $euc_dist;
+       } 
+       else {
+          if ($id eq $s) {
+             push @eucledean_dist, $smallest_value;
+          }
+          else {
+             #push @eucledean_dist, 'NA';
+             push @eucledean_dist, 0;
+          }
+       }
+    }
+   
+     # close = 1
+     # far = 0
+   
+     for my $euc_dist ( @eucledean_dist ) {
+        #print "$euc_dist\n";
+        if (($euc_dist < $max_value) && ($euc_dist > 0)) {
+           push (@pw_dist, 1);
+        }
+        else {
+           push (@pw_dist, 0);
+        }
+     }
+   
+    open (OUT, ">>$out_dir/$in_file.meta") || die "Cannot open metadata file $in_file.meta\n";
+    print OUT "$id\t", join("\t", @pw_dist), "\n";
+    close OUT;
+   
+   }
+   return ("$in_file.meta");
+}
+
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+##:::  This routine creates the metadata matrix based on discrete data values   :::
+##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+sub discrete_metadata_matrix {
+   # in_file contains sample, metadata (discrete values) e.g. longhurst province 
+   # where 0 = different, and 1 = the same 
+
+   my ($in_file, $metadir, $out_dir) = @_;
+   open (IN, "$metadir/$in_file") || die "Cannot open $in_file\n";   
+   my @meta = ();
+   my %sample_to_metadata = ();
+   my @samples;
+   
+   my $i = 0;
+   while (<IN>) {
+      $i++;
+      chomp $_;
+      # header line 
+      if ($i == 1) { 
+         @meta = split (/\t/, $_);
+         shift @meta; # remove id for sample
+      }
+      else {
+         my @values = split (/\t/, $_);
+         my $id = shift @values;
+         push (@samples, $id);
+         for my $m (@meta) {
+            my $v = shift @values;
+            $sample_to_metadata{$id}{$m} = $v;
+         }
+      }
+   }
+  
+   # create a file that calculates the whether each value in the metadata file
+   # is the same or different
+   # for each pairwise combination of samples
+   # where 0 = different, and 1 = the same
+   open (OUT, ">$out_dir/$in_file.meta") || die "Cannot open metadata file $in_file.meta\n";
+   print OUT "\t", join("\t", @samples), "\n";
+   close OUT;
+   
+   for my $id (sort @samples) {
+     my @same_diff = ();
+     for my $s (@samples) {
+         my @a = ();  #metavalues for A
+         my @b = ();  #metavalues for B
+         for my $m (@meta) {
+            my $s1 = $sample_to_metadata{$id}{$m};
+            my $s2 = $sample_to_metadata{$s}{$m};
+            push (@a, $s1);
+            push (@b, $s2);
+        }
+        # count for samples
+        my $ct = @a;
+        $ct = $ct - 1;
+  
+        #pairwise samenesscheck between A and B
+        for my $i ( 0 .. $ct) {
+           if (($a[$i] ne 'NA') && ($b[$i] ne 'NA')) {
+              if ($a[$i] eq $b[$i] ) {
+                 push @same_diff, 1;
+              }
+              else {
+                 push @same_diff, 0;
+              }
+           }
+           else {
+              push @same_diff, 0;
+           }
+        }
+    }
+   
+    open (OUT, ">>$out_dir/$in_file.meta") || die "Cannot open metadata file $in_file.meta\n";
+    print OUT "$id\t", join("\t", @same_diff), "\n";
+    close OUT;
+   }
+   return ("$in_file.meta");
+}
 
 __END__
 
@@ -387,26 +631,33 @@ sna.pl - social-network analysis
 Required Arguments:
 
   -o|--out-dir     Path to output directory
-  -m|--metadata    Path to metadata file
+  -m|--metadir     Path to metadata files
   -s|--seq-matrix  Path to sequence matrix file
 
 Options:
-
+  -e|eucdistper    Eucledean distance percentage (bottom 10% by default)
+  -d|sampledist    Maximimum physical distance b/w samples to be called "close" (default 1000 K)  
   -v|--verbose     Be chatty (default yes)
   --help           Show brief help and exit
   --man            Show full documentation
 
 =head1 DESCRIPTION
 
-Runs the social-network analysis on the output of "make-matrix.pl."
+(1) Creates metadata files that are in matrix format for R
+to show similarities and differences for each pairwise 
+sample combination
 
 The "metadata" file should look something like this:
 
-        SMAD3+	Hel+
-    DNA1	1	1
-    DNA2	0	1
-    DNA3	1	0
-    DNA4	0	0
+        SMAD3+  Hel+
+    DNA1    1   1
+    DNA2    0   1
+    DNA3    1   0
+    DNA4    0   0
+
+(2) Creates the R code for running the SNA analysis
+
+(3) Runs the R code for the SNA analysis
 
 =head1 AUTHORS
 
