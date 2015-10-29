@@ -61,9 +61,16 @@ sub main {
     # this is how we tell which subroutine to use for creating the
     # metadata matrix files for input into SNA
 
-    #my $dist_matrix = distance_metadata_matrix();
-    #my $cont_matrix = continuous_metadata_matrix();
-    #my $disc_matrix = discrete_metadata_matrix(); 
+    # first we need to get a list of the sample ids
+    my @samples = ();
+    open (SM, "$seq_matrix") || die "Cannot open $seq_matrix\n";
+    while (<SM>) {
+       chomp $_;
+       my @fields = split(/\t/, $_);
+       my $sample = shift @fields;
+       push @samples, $sample;
+    }
+    shift @samples; # remove the first line with no sample name
 
     opendir(my $dh, $metadir) || die "no metadata directory specified\n";
     my @meta = ();
@@ -91,12 +98,10 @@ sub main {
     # be sure that `module load R` has already been run in the
     # shell script that runs this perl script on the 
     # compute node
-    print "defining subroutines\n";
     my $t         = Template->new;
     my $sna_tmpl  = template_sna();
     my $plot_tmpl = template_plot();
 
-    print "creating SNA template\n";
     $t->process(
         \$sna_tmpl, 
         { 
@@ -107,18 +112,18 @@ sub main {
         'sna.R'
     ) or die $t->error;
 
-    print "creating plot template\n";
     $t->process(
         \$plot_tmpl, 
         { 
             out_dir => $out_dir,
-            #scan    => $scan,
+            samples => \@samples,
         }, 
         'plot.R'
     ) or die $t->error;
 
-    ##my $cmd1 = `R CMD BATCH --slave sna.R`;
-    ##my $cmd2 = `R CMD BATCH --slave plot.R`;
+    # make sure you load R if you run this on the HPC
+    my $cmd1 = `R CMD BATCH --slave sna.R`;
+    my $cmd2 = `R CMD BATCH --slave plot.R`;
 }
 
 # --------------------------------------------------
@@ -135,19 +140,19 @@ k <- [% meta.size %]
 Xss<-array(NA, dim=c(n,n,k))
 [% SET counter = 0 -%]
 [% FOREACH m IN meta -%]
-   [% SET counter=count + 1 -%]
+   [% SET counter=counter + 1 -%]
    [% m %] <- as.matrix(read.table("[% m %]", header = TRUE))
    Xss[,, [% counter%] ] <- [% m %]
 [% END -%]
-
+[% SET counter=counter + 1 -%]
 gbme(Y=Y, Xss, fam="gaussian", k=2, direct=F, NS=NS, odens=odens)
 
 x.names <- c("[% meta.join('", "')%]", "intercept")
 
 OUT <- read.table("OUT", header=T)
 full.model <- t(apply(OUT, 2, quantile, c(0.5, 0.025, 0.975)))
-rownames(full.model)[1:[% meta.size %]] <- x.names
-table1 <- xtable(full.model[1:[% meta.size %]], align="c|c||cc")
+rownames(full.model)[1:[% counter %]] <- x.names
+table1 <- xtable(full.model[1:[% counter %]], align="c|c||cc")
 print ( xtable (table1), type= "latex" , file= "table1.tex" )
 EOF
 }
@@ -157,9 +162,10 @@ sub template_plot {
     return <<EOF
 setwd("[% out_dir %]")
 source("gbme.r")
+OUT<-read.table("OUT",header=T)
 #examine marginal mixing
 par(mfrow=c(3,4))      
-pdf("plot1.pdf", width=7, height=0.6*7)
+pdf("plot1.pdf", width=6, height=6)
 for(i in 3:dim(OUT)[2]) { plot(OUT[,i],type="l") }
 dev.off()
 # posterior samples, dropping
@@ -168,13 +174,12 @@ dev.off()
 PS<-OUT[OUT\$scan>round(max(OUT\$scan)/2),-(1:3)]
 
 #gives mean, std dev, and .025,.5,.975 quantiles
-M.SD.Q<-rbind( apply(PS,2,mean),apply(PS,2,sd)
-  apply(PS,2,quantile,probs=c(.025,.5,.975)) )
+M.SD.Q<-rbind( apply(PS,2,mean),apply(PS,2,sd),apply(PS,2,quantile,probs=c(.025,.5,.975)) )
 
 print(M.SD.Q)
 
 #plots of posterior densities
-pdf("plot2.pdf", width=7, height=0.6*7)
+pdf("plot2.pdf", width=6, height=6)
 par(mfrow=c(3,4))
 for(i in 1:dim(PS)[2]) { plot(density(PS[,i]),main=colnames(PS)[i]) }
 dev.off()
@@ -186,8 +191,8 @@ Z<-read.table("Z")
 #convert to an array
 nss<-dim(OUT)[1]
 n<-dim(Z)[1]/nss
-PZ<-array(dim=c(n,k,nss))
 k<-dim(Z)[2]
+PZ<-array(dim=c(n,k,nss))
 for(i in 1:nss) { PZ[,,i]<-as.matrix(Z[ ((i-1)*n+1):(i*n) ,])  }
 
 PZ<-PZ[,,-(1:round(nss/2))]     #drop first half for burn in
@@ -199,7 +204,7 @@ ZTZ<-ZTZ/dim(PZ)[3]
 
 #a configuration that approximates posterior mean of ZTZ
 tmp<-eigen(ZTZ)
-Z.pm<-tmp[% vec %][,1:k]%*%sqrt(diag(tmp[% val %][1:k]))
+Z.pm<-tmp\$vec[,1:k]%*%sqrt(diag(tmp\$val[1:k]))
 
 #now transform each sample Z to a common orientation
 for(i in 1:dim(PZ)[3] ) { PZ[,,i]<-proc.rr(PZ[,,i],Z.pm) }
@@ -208,6 +213,7 @@ for(i in 1:dim(PZ)[3] ) { PZ[,,i]<-proc.rr(PZ[,,i],Z.pm) }
 # a two dimensional plot of "mean" latent locations 
 # and marginal confidence regions
 #
+k <- 2
 if(k==2) {     
 
     r<-atan2(Z.pm[,2],Z.pm[,1])
@@ -218,8 +224,8 @@ if(k==2) {
     b<-b/max(b)
 
     par(mfrow=c(1,1))
-    pdf("plot2.pdf", width=7, height=0.6*7)
-    plot(Z.pm[,1],Z.pm[,2],xlab="",ylab="",type="n",xlim=range(PZ[,1,])
+    pdf("plot3.pdf", width=6, height=6)
+    plot(Z.pm[,1],Z.pm[,2],xlab="",ylab="",type="n",xlim=range(PZ[,1,]),
          ylim=range(PZ[,2,]))
     abline(h=0,lty=2);abline(v=0,lty=2)
 
@@ -229,8 +235,8 @@ if(k==2) {
        [% labels.push("'" _ id _ "'") -%]
     [% END -%]
     text(Z.pm[,1],Z.pm[,2], cex = 0.3, labels=c([% labels.join(',') %]))   #add labels here
-}
     dev.off()
+}
 EOF
 }
 
