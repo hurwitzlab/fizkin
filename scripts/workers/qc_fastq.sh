@@ -13,6 +13,8 @@
 # Runs QC on a set of paired-end Illumina FASTQ files
 #
 
+### SEE BOTTOM FOR COMMAND PARAMETERS!!!!
+
 # expects:
 # SCRIPT_DIR RAW_DIR BIN_DIR FILE FASTQ_DIR FASTA_DIR
 
@@ -88,3 +90,23 @@ while read FILE; do
 done < $TMP_FILES
 
 echo Finished $(date)
+#
+#SolexaQA++ v3.1.1
+#Released under GNU General Public License version 3
+#C++ version developed by Mauro Truglio (M.Truglio@massey.ac.nz)
+#Running with h=0
+#
+#Usage: SolexaQA++ analysis input_files [-p|probcutoff 0.05] [-h|phredcutoff 13] [-v|variance] [-m|minmax] [-s|sample 10000] [-b|bwa] [-d|directory path] [--sanger --solexa --illumina] [-t|torrent]
+#
+#Options:
+#-p|--probcutoff     probability value (between 0 and 1) at which base-calling error is considered too high (default; p = 0.05) *or*
+#-h|--phredcutoff    Phred quality score (between 0 and 41) at which base-calling error is considered too high
+#-v|--variance       calculate variance statistics
+#-m|--minmax         calculate minimum and maximum error probabilities for each read position of each tile
+#-s|--sample         number of sequences to be sampled per tile for statistics estimates (default; s = 10000)
+#-b|--bwa            use BWA trimming algorithm
+#-d|--directory      path to directory where output files are saved
+#--sanger            Sanger format (bypasses automatic format detection)
+#--solexa            Solexa format (bypasses automatic format detection)
+#--illumina          Illumina format (bypasses automatic format detection)
+#-t|--torrent        Ion Torrent fastq file
