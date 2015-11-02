@@ -110,3 +110,39 @@ echo Finished $(date)
 #--solexa            Solexa format (bypasses automatic format detection)
 #--illumina          Illumina format (bypasses automatic format detection)
 #-t|--torrent        Ion Torrent fastq file
+#
+#Usage: SolexaQA++ dynamictrim input_files [-t|torrent] [-p|probcutoff 0.05] [-h|phredcutoff 13] [-b|bwa] [-d|directory path] [--sanger --solexa --illumina] [-t|torrent]
+#
+#Options:
+#-p|--probcutoff     probability value (between 0 and 1) at which base-calling error is considered too high (default; p = 0.05) *or*
+#-h|--phredcutoff    Phred quality score (between 0 and 41) at which base-calling error is considered too high
+#-b|--bwa            use BWA trimming algorithm
+#-d|--directory      path to directory where output files are saved
+#--sanger            Sanger format (bypasses automatic format detection)
+#--solexa            Solexa format (bypasses automatic format detection)
+#--illumina          Illumina format (bypasses automatic format detection)
+#-a|--anchor         Reads will only be trimmed from the 3′ end
+#-t|--torrent        Ion Torrent fastq file
+#
+#usage: fastx_clipper [-h] [-a ADAPTER] [-D] [-l N] [-n] [-d N] [-c] [-C] [-o] [-v] [-z] [-i INFILE] [-o OUTFILE]
+#Part of FASTX Toolkit 0.0.14 by A. Gordon (assafgordon@gmail.com)
+#
+#[-h]         = This helpful help screen.
+#[-a ADAPTER] = ADAPTER string. default is CCTTAAGG (dummy adapter).
+#[-l N]       = discard sequences shorter than N nucleotides. default is 5.
+#[-d N]       = Keep the adapter and N bases after it.
+#(using '-d 0' is the same as not using '-d' at all. which is the default).
+#[-c]         = Discard non-clipped sequences (i.e. - keep only sequences which contained the adapter).
+#[-C]         = Discard clipped sequences (i.e. - keep only sequences which did not contained the adapter).
+#[-k]         = Report Adapter-Only sequences.
+#[-n]         = keep sequences with unknown (N) nucleotides. default is to discard such sequences.
+#[-v]         = Verbose - report number of sequences.
+#If [-o] is specified,  report will be printed to STDOUT.
+#If [-o] is not specified (and output goes to STDOUT),
+#           report will be printed to STDERR.
+#[-z]         = Compress output with GZIP.
+#[-D]    = DEBUG output.
+#[-M N]       = require minimum adapter alignment length of N.
+#If less than N nucleotides aligned with the adapter - don't clip it.   [-i INFILE]  = FASTA/Q input file. default is STDIN.
+#[-o OUTFILE] = FASTA/Q output file. default is STDOUT.
+#
