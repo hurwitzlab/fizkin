@@ -57,7 +57,7 @@ while read FILE; do
   done
 
   TRIMMED_FILE=$FASTQ_DIR/${BASENAME}.trimmed
-
+  # Analysis makes pretty graphs, dynamictrim individually crops each read to its longest contiguous segment for which quality scores are greater than a user-supplied quality cutoff (default is Q=13 so each base is at least 14)
   if [[ ! -e $TRIMMED_FILE ]]; then
     for ACTION in analysis dynamictrim; do
       $BIN_DIR/SolexaQA++ $ACTION -d $FASTQ_DIR $FILE
