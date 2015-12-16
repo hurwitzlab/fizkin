@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 #PBS -q standard
 #PBS -l jobtype=cluster_only
 #PBS -l select=1:ncpus=4:mem=10gb
