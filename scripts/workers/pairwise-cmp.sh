@@ -60,7 +60,7 @@ while read FASTA SUFFIX; do
     $i $(basename $FASTA) $(basename $SUFFIX)
 
   FASTA_BASE=$(basename $FASTA ".screened")
-  KMER_FILE="$KMER_DIR/${FASTA_BASE}.kmers"
+  KMER_FILE="$KMER_DIR/${FASTA_BASE}.kmer"
   LOC_FILE="$KMER_DIR/${FASTA_BASE}.loc"
   SUFFIX_BASE=$(basename "$SUFFIX" ".jf")
   MODE_OUT_DIR="$MODE_DIR/$SUFFIX_BASE"
