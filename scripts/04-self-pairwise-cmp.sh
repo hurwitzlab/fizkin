@@ -71,7 +71,7 @@ fi
 JELLYFISH_FILES=$(mktemp)
 
 while read FASTA; do
-  find $JELLYFISH_DIR -name $(basename $FASTA).jf >> $JELLYFISH_FILES
+  find $JELLYFISH_DIR -name $(basename $FASTA) >> $JELLYFISH_FILES
 done < $INPUT_FILES
 
 NUM_JF_FILES=$(lc $JELLYFISH_FILES)
