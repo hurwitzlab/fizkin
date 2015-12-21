@@ -20,7 +20,7 @@ CWD=$PWD
 PROG=$(basename $0 ".sh")
 STDOUT_DIR="$CWD/out/$PROG"
 
-init_dirs "$STDOUT_DIR"
+init_dir "$STDOUT_DIR"
 
 if [[ ! -d "$MODE_DIR" ]]; then
   mkdir "$MODE_DIR"
@@ -36,11 +36,11 @@ fi
 INPUT_FILES=$(mktemp)
 INPUT_FILE_NAME=${1:-''}
 
-if [ -n "$INPUT_FILE_NAME" ] && [ -e "$INPUT_FILE_NAME" ]; then
+if [[ -n "$INPUT_FILE_NAME" ]] && [[ -e "$INPUT_FILE_NAME" ]]; then
   echo Taking input files from \"$INPUT_FILE_NAME\"
 
   while read FILE; do
-    if [ -e $FILE ]; then
+    if [[ -e $FILE ]]; then
       echo $FILE >> $INPUT_FILES
     else
       echo Bad input file \"$FILE\"
@@ -60,7 +60,7 @@ NUM_INPUT_FILES=$(lc $INPUT_FILES)
 
 echo Found \"$NUM_INPUT_FILES\" files in \"$INPUT_DIR\"
 
-if [ $NUM_INPUT_FILES -lt 1 ]; then
+if [[ $NUM_INPUT_FILES -lt 1 ]]; then
   echo Nothing to do.
   exit 1
 fi
@@ -78,7 +78,7 @@ NUM_JF_FILES=$(lc $JELLYFISH_FILES)
 
 echo Found \"$NUM_JF_FILES\" indexes in \"$JELLYFISH_DIR\"
 
-if [ $NUM_JF_FILES -lt 1 ]; then
+if [[ $NUM_JF_FILES -lt 1 ]]; then
   echo Nothing to do.
   exit 1
 fi
@@ -86,14 +86,14 @@ fi
 #
 # Pair up the FASTA/Jellyfish files
 #
-if [ $NUM_JF_FILES -ne $NUM_INPUT_FILES ]; then
+if [[ $NUM_JF_FILES -ne $NUM_INPUT_FILES ]]; then
   echo Different number of Jellyfish/FASTA files, quitting.
   exit 1
 fi
 
 export FILES_LIST="${HOME}/$$.in"
 
-if [ -e $FILES_LIST ]; then
+if [[ -e $FILES_LIST ]]; then
   rm -f $FILES_LIST 
 fi
 
@@ -105,7 +105,7 @@ done < $INPUT_FILES
 
 NUM_PAIRS=$(lc $FILES_LIST)
 
-if [ $NUM_PAIRS -lt 1 ]; then
+if [[ $NUM_PAIRS -lt 1 ]]; then
   echo Could not generate file pairs
   exit 1
 fi
@@ -113,7 +113,7 @@ fi
 echo There are \"$NUM_PAIRS\" pairs to process 
 
 JOBS_ARG=""
-if [ $NUM_PAIRS -gt 1 ]; then
+if [[ $NUM_PAIRS -gt 1 ]]; then
   JOBS_ARG="-J 1-$NUM_PAIRS:$STEP_SIZE"
 fi
 
@@ -126,7 +126,7 @@ GROUP_ARG="-W group_list=${GROUP:=bhurwitz}"
 
 JOB=$(qsub -N "pair-cmp" $JOBS_ARG $EMAIL_ARG $GROUP_ARG -j oe -o "$STDOUT_DIR" -v SCRIPT_DIR,SUFFIX_DIR,MODE_DIR,READ_MODE_DIR,KMER_DIR,MER_SIZE,JELLYFISH,FILES_LIST,STEP_SIZE $SCRIPT_DIR/pairwise-cmp.sh)
 
-if [ $? -eq 0 ]; then
+if [[ $? -eq 0 ]]; then
   echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Adios.
 else
   echo -e "\nError submitting job\n$JOB\n"

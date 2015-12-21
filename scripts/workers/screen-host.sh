@@ -58,7 +58,7 @@ fi
 
 SUFFIX_LIST=$(mktemp)
 
-find $HOST_JELLYFISH_DIR -name \*.jf | sort > $SUFFIX_LIST
+find $HOST_JELLYFISH_DIR -type f | sort > $SUFFIX_LIST
 
 NUM_SUFFIXES=$(wc -l $SUFFIX_LIST | cut -d ' ' -f 1)
 
@@ -81,7 +81,7 @@ while read FASTA; do
 #    continue
 #  fi
 
-  KMER_FILE="$KMER_DIR/${FASTA_BASE}.kmers"
+  KMER_FILE="$KMER_DIR/${FASTA_BASE}.kmer"
   LOC_FILE="$KMER_DIR/${FASTA_BASE}.loc"
 
   if [[ ! -e $KMER_FILE ]]; then

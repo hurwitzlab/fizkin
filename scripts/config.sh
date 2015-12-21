@@ -21,7 +21,7 @@ export GROUP="mbsulli"
 #
 # The main checkout
 #
-PROJECT_DIR="/rsgrps/bhurwitz/kyclark/mouse"
+PROJECT_DIR="/rsgrps/bhurwitz/kyclark/skin_virome"
 
 #
 # Where we can find the worker scripts
@@ -40,15 +40,12 @@ export RAW_DIR="/rsgrps/bhurwitz/hurwitzlab/data/raw/Doetschman_20111007/all"
 #
 # Where to find the host genome for screening
 #
-REF_DIR=/rsgrps/bhurwitz/hurwitzlab/data/reference
-export HOST_DIR="$REF_DIR/a_xylosoxidans $REF_DIR/mouse $REF_DIR/glycine_max $REF_DIR/yeast $REF_DIR/wheat $REF_DIR/medicago_truncatula $REF_DIR/zea_mays"
+export HOST_DIR=/rsgrps/bhurwitz/hurwitzlab/data/reference/human_genome/GRCh38
 
 #
 # Where to put the results of our steps
 #
-export HOST_JELLYFISH_DIR="/rsgrps/bhurwitz/kyclark/mouse/data/host-jellyfish"
-
-export HOST_BOWTIE_DIR="/rsgrps/bhurwitz/hurwitzlab/data/bowtie"
+export HOST_JELLYFISH_DIR=/rsgrps/bhurwitz/hurwitzlab/data/jellyfish/human
 
 #
 # Where we can find all our custom binaries (e.g., jellyfish)
@@ -79,7 +76,7 @@ export MAX_JELLYFISH_INPUT_SIZE=1000 # MB
 # Some custom functions for our scripts
 #
 # --------------------------------------------------
-function init_dirs {
+function init_dir {
     for dir in $*; do
         if [ -d "$dir" ]; then
             rm -rf $dir/*

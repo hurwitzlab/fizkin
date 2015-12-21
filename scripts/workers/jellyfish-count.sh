@@ -84,8 +84,8 @@ fi
 i=0
 while read FILE; do
   BASENAME=$(basename $FILE)
-  JF_FILE="$OUT_DIR/${BASENAME}.jf"
-  KMER_FILE="$KMER_DIR/${BASENAME}.kmers"
+  JF_FILE="$OUT_DIR/$BASENAME"
+  KMER_FILE="$KMER_DIR/${BASENAME}.kmer"
   LOC_FILE="$KMER_DIR/${BASENAME}.loc"
 
   let i++

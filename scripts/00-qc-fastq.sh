@@ -23,7 +23,7 @@ export STEP_SIZE=20
 PROG=$(basename $0 ".sh")
 STDOUT_DIR="$CWD/out/$PROG"
 
-init_dirs "$STDOUT_DIR"
+init_dir "$STDOUT_DIR"
 
 if [[ ! -d $RAW_DIR ]]; then
   echo "Bad RAW_DIR ($RAW_DIR)"
@@ -51,14 +51,14 @@ NUM_FILES=$(lc $FILES_LIST)
 
 echo Found \"$NUM_FILES\" input files
 
-if [ $NUM_FILES -lt 1 ]; then
+if [[ $NUM_FILES -lt 1 ]]; then
   echo Nothing to do.
   exit 1
 fi
 
 JOB=$(qsub -J 1-$NUM_FILES:$STEP_SIZE -v STEP_SIZE,SCRIPT_DIR,RAW_DIR,BIN_DIR,FILES_LIST,FASTQ_DIR,FASTA_DIR -N qc_fastq -j oe -o "$STDOUT_DIR" $SCRIPT_DIR/qc_fastq.sh)
 
-if [ $? -eq 0 ]; then
+if [[ $? -eq 0 ]]; then
   echo Submitted job \"$JOB\" for you in steps of \"$STEP_SIZE.\" Sayonara.
 else
   echo -e "\nError submitting job\n$JOB\n"

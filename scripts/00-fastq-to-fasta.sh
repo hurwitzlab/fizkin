@@ -38,7 +38,7 @@ export STEP_SIZE=20
 PROG=$(basename $0 ".sh")
 PBSOUT_DIR="$BIN/pbs-out/$PROG"
 
-init_dirs "$PBSOUT_DIR"
+init_dir "$PBSOUT_DIR"
 
 export FILES_LIST="${HOME}/$$.in"
 
