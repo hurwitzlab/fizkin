@@ -26,8 +26,8 @@ PROJECT_DIR="/rsgrps/bhurwitz/scottdaniel/mouse"
 #
 # Where we can find the worker scripts
 #
-export SCRIPT_DIR="$PROJECT_DIR/scripts/workers"
-
+export SCRIPT_DIR="$PROJECT_DIR/scripts"
+export WORKER_DIR="$SCRIPT_DIR/workers"
 #
 # Where to put all our generated data
 #
@@ -59,6 +59,7 @@ export JELLYFISH="$BIN_DIR/jellyfish"
 #
 # Where to put the results of our steps
 #
+export FASTQC_REPORTS="$DATA_DIR/fastqc_reports"
 export FASTQ_DIR="$DATA_DIR/fastq"
 export FASTA_DIR="$DATA_DIR/fasta"
 export BT_ALIGNED_DIR="$DATA_DIR/bowtie-aligned"
