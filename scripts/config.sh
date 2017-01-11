@@ -15,63 +15,34 @@ export MER_SIZE=20
 export MIN_SEQ_LENGTH=50
 export QSTAT="/usr/local/bin/qstat_local"
 export GUNZIP="/bin/gunzip"
-export EMAIL="kyclark@email.arizona.edu"
-export GROUP="mbsulli"
+export EMAIL="scottdaniel@email.arizona.edu"
+export GROUP="bhurwitz"
 
 #
 # The main checkout
 #
-PROJECT_DIR="/rsgrps/bhurwitz/kyclark/skin_virome"
+PRJ_DIR="/rsgrps/bhurwitz/scottdaniel/mouse"
 
 #
 # Where we can find the worker scripts
 #
-export SCRIPT_DIR="$PROJECT_DIR/scripts/workers"
+export SCRIPT_DIR="$PRJ_DIR/scripts/workers"
 
 #
 # Where to put all our generated data
 #
-export DATA_DIR="$PROJECT_DIR/data"
+export DATA_DIR="$PRJ_DIR/data"
 
 # Where to find the "raw" DNA or RNA reads
 #
 export RAW_DIR="/rsgrps/bhurwitz/hurwitzlab/data/raw/Doetschman_20111007/all"
-
-#
-# Where to find the host genome for screening
-#
-export HOST_DIR=/rsgrps/bhurwitz/hurwitzlab/data/reference/human_genome/GRCh38
-
 #
 # Where to put the results of our steps
 #
-export HOST_JELLYFISH_DIR=/rsgrps/bhurwitz/hurwitzlab/data/jellyfish/human
-
-#
-# Where we can find all our custom binaries (e.g., jellyfish)
-#
-export BIN_DIR="/rsgrps/bhurwitz/hurwitzlab/bin"
-export JELLYFISH="$BIN_DIR/jellyfish"
-
-#
-# Where to put the results of our steps
-#
-export FASTQ_DIR="$DATA_DIR/fastq"
-export FASTA_DIR="$DATA_DIR/fasta"
-export BT_ALIGNED_DIR="$DATA_DIR/bowtie-aligned"
-export SCREENED_DIR="$DATA_DIR/screened"
-# "Rejected" directory is for reads that match hosts, i.e. where the mouse RNA kmers are going to go
-export REJECTED_DIR="$DATA_DIR/rejected"
-export SUFFIX_DIR="$DATA_DIR/suffix"
-export KMER_DIR="$DATA_DIR/kmer"
-export JELLYFISH_DIR="$DATA_DIR/jellyfish"
-export FASTA_SPLIT_DIR="$DATA_DIR/fasta-split"
-export COUNT_DIR="$DATA_DIR/counts"
-export MODE_DIR="$DATA_DIR/modes"
-export READ_MODE_DIR="$DATA_DIR/read-modes"
-export MATRIX_DIR="$DATA_DIR/matrix"
-export MAX_JELLYFISH_INPUT_SIZE=1000 # MB
-
+#after QC, trimming and discarding
+export FASTQ_DIR="$DATA_DIR/clipped"
+#after sorting and merging
+export READY_DIR="$DATA_DIR/fastq_out"
 #
 # Some custom functions for our scripts
 #

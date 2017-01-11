@@ -40,12 +40,12 @@ fi
 
 echo RAW_DIR \"$RAW_DIR\"
 
-export FILES_LIST="${HOME}/$$.in"
+export FILES_LIST="./$PROG.in"
 
 #
 # find those RNA files!
 #
-find $RAW_DIR -name RNA\* > $FILES_LIST
+find $RAW_DIR -name \*RNA\* > $FILES_LIST
 
 NUM_FILES=$(lc $FILES_LIST)
 
