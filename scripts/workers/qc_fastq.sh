@@ -71,6 +71,7 @@ while read FILE; do
 
   CLIPPED_FILE=${TRIMMED_FILE}.clipped
 
+  #this discards reads that are less than 52nt
   $BIN_DIR/fastx_clipper -v -l ${MIN_SEQ_LENGTH:=52} \
     -i $TRIMMED_FILE -o $CLIPPED_FILE
 
@@ -84,9 +85,12 @@ while read FILE; do
     continue
   fi
 
-  FASTA=$(basename $FILE '.fastq')
+#  only want to clip to high-quality fastqs here
 
-  $SCRIPT_DIR/fastq2fasta.awk $CLIPPED_FILE > "${FASTA_DIR}/${FASTA}.fa"
+#  FASTA=$(basename $FILE '.fastq')
+
+#  $SCRIPT_DIR/fastq2fasta.awk $CLIPPED_FILE > "${FASTA_DIR}/${FASTA}.fa"
+
 done < $TMP_FILES
 
 echo Finished $(date)
