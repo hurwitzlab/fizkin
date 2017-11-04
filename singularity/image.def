@@ -1,0 +1,85 @@
+BootStrap: docker
+From: ubuntu:latest
+
+%environment
+    PERL5LIB=/app/fizkin/scripts
+    export PERL5LIB
+    LD_LIBRARY_PATH=/usr/local/lib
+    export LD_LIBRARY_PATH
+
+%runscript
+    exec /usr/bin/perl /app/fizkin/scripts/run-fizkin.pl "$@"
+
+%post
+    apt-get update
+    apt-get install -y locales git build-essential autoconf libtool \
+        pkg-config yaggo wget graphviz curl libcurl4-openssl-dev libssl-dev 
+    locale-gen en_US.UTF-8
+
+    #
+    # Put everything into $APP_DIR
+    #
+    export APP_DIR=/app
+    mkdir -p $APP_DIR
+    cd $APP_DIR
+
+    #
+    # Install Jellyfish 
+    #
+    cd $APP_DIR
+    git clone https://github.com/hurwitzlab/Jellyfish.git jellyfish-src
+    cd jellyfish-src
+    autoreconf -i && ./configure && make install
+    cd examples/query_per_sequence_mode
+    #PKG_CONFIG_PATH=../.. make
+    cp query_per_sequence /usr/local/bin
+
+#    wget https://github.com/gmarcais/Jellyfish/releases/download/v2.2.6/jellyfish-2.2.6.tar.gz
+#    tar xvf jellyfish-2.2.6.tar.gz
+#    (cd jellyfish-2.2.6 && ./configure && make install)
+
+#    #
+#    # Add CRAN to sources to get latest R
+#    #
+#    gpg --keyserver keyserver.ubuntu.com --recv-key E084DAB9
+#    gpg -a --export E084DAB9 | apt-key add -
+#    echo "deb http://cran.rstudio.com/bin/linux/ubuntu xenial/" | \
+#        tee -a /etc/apt/sources.list
+#    apt-get install -y r-base r-base-dev
+# 
+#    #
+#    # CPAN installs want to use "/bin/make"
+#    #
+#    ln -s /usr/bin/make /bin/make
+#
+#
+#    #
+#    # Clone Fizkin 
+#    #
+#    cd $APP_DIR
+#    git clone https://github.com/hurwitzlab/docker-fizkin.git fizkin
+#
+#    #
+#    # Install Perl modules
+#    #
+#    cd fizkin/scripts
+#    cpan -i App::cpanminus
+#    cpanm --installdeps .
+#
+#    #
+#    # Install R modules (need the .Rprofile to indicate CRAN mirror)
+#    #
+#    cat << EOF > .Rprofile
+#local({
+#  r = getOption("repos")
+#  r["CRAN"] = "http://mirrors.nics.utk.edu/cran/"
+#  options(repos = r)
+#})
+#EOF
+#    Rscript install.R
+  
+  
+    # Mount points for TACC directories
+    mkdir /home1
+    mkdir /scratch
+    mkdir /work
