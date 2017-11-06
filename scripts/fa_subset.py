@@ -45,15 +45,17 @@ def main():
     basename = os.path.basename(fasta)
     out_file = os.path.join(out_dir, basename)
     out_fh = open(out_file, 'wt')
+    num_written = 0
 
-    for i, record in enumerate(SeqIO.parse(fasta, "fasta")):
+    for record in SeqIO.parse(fasta, "fasta"):
         SeqIO.write(record, out_fh, "fasta")
+        num_written += 1
 
-        if i + 1 == num_seqs:
+        if num_written == num_seqs:
             break
 
     print('Done, wrote {} sequence{} to "{}"'.format(
-        num_seqs, '' if num_seqs == 1 else 's', out_file))
+        num_written, '' if num_written == 1 else 's', out_file))
 
 # --------------------------------------------------
 if __name__ == '__main__':
