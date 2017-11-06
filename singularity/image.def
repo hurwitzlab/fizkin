@@ -3,9 +3,10 @@ From: ubuntu:latest
 
 %environment
     PATH=/app/fizkin/scripts:$PATH
+    LD_LIBRARY_PATH=/usr/local/lib
 
 %runscript
-    exec echo "Welcome to Fizkin"
+    exec jellyfish
 
 %post
     apt-get update
@@ -25,19 +26,19 @@ From: ubuntu:latest
     # Install Jellyfish 
     #
     cd $APP_DIR
-    git clone https://github.com/hurwitzlab/Jellyfish.git jellyfish-src
-    cd jellyfish-src
+    git clone https://github.com/hurwitzlab/Jellyfish.git jellyfish
+    cd jellyfish
     autoreconf -i && ./configure && make install
     cd examples/query_per_sequence_mode
-    #PKG_CONFIG_PATH=../.. make
+    PKG_CONFIG_PATH=../.. make
     cp query_per_sequence /usr/local/bin
 
     #
     # Clone Fizkin 
     #
-    cd $APP_DIR
-    git clone https://github.com/hurwitzlab/fizkin.git fizkin
-    python3 -m pip install -r /app/fizkin/scripts/requirements.txt
+    #cd $APP_DIR
+    #git clone https://github.com/hurwitzlab/fizkin.git fizkin
+    #python3 -m pip install -r /app/fizkin/scripts/requirements.txt
 
 #    #
 #    # Add CRAN to sources to get latest R
