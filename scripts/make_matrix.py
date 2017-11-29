@@ -13,9 +13,9 @@ def get_args():
     """get args"""
     parser = argparse.ArgumentParser(description='Make matrix from modes')
     parser.add_argument('-m', '--mode_dir', help='Mode directory',
-                        metavar='str', type=str, required=True)
-    parser.add_argument('-o', '--out_file', help='Matrix output file',
-                        metavar='str', type=str, default='matrix.txt')
+                        metavar='DIR', type=str, required=True)
+    parser.add_argument('-o', '--out_dir', help='Matrix output dir',
+                        metavar='DIR', type=str, default=os.getcwd())
     return parser.parse_args()
 
 # --------------------------------------------------
@@ -23,7 +23,7 @@ def main():
     """main"""
     args = get_args()
     mode_dir = args.mode_dir
-    matrix_file = args.out_file
+    out_dir = args.out_dir
 
     if not mode_dir:
         print('--mode_dir is required')
@@ -33,7 +33,6 @@ def main():
         print('Bad --mode_dir "{}"'.format(mode_dir))
         sys.exit(1)
 
-    out_dir = os.path.dirname(matrix_file)
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
 
@@ -56,19 +55,30 @@ def main():
 
     all_samples = sorted(all_keys)
 
-    out_fh = open(matrix_file, 'w')
-    out_fh.write('\t'.join([''] + all_samples) + '\n')
+    raw_file = os.path.join(out_dir, 'matrix_raw.txt')
+    raw_fh = open(raw_file, 'w')
+
+    norm_file = os.path.join(out_dir, 'matrix_normalized.txt')
+    norm_fh = open(norm_file, 'w')
+
+    raw_fh.write('\t'.join([''] + all_samples) + '\n')
+    norm_fh.write('\t'.join([''] + all_samples) + '\n')
 
     for sample1 in all_samples:
-        row = [sample1]
+        raw = [sample1]
+        norm = [sample1]
         for sample2 in all_samples:
-            avg = (counts[sample1].get(sample2, 0)
-                   + counts[sample2].get(sample1, 0)) / 2
-            row.append('{:.4f}'.format(log(avg)) if avg > 0 else '0')
+            n1 = counts[sample1].get(sample2, 0)
+            n2 = counts[sample2].get(sample1, 0)
+            avg = (n1 + n2) / 2
 
-        out_fh.write('\t'.join(row) + '\n')
+            raw.append(str(n1))
+            norm.append('{:.4f}'.format(log(avg)) if avg > 0 else '0')
 
-    print('Done, see matrix file "{}"'.format(matrix_file))
+        raw_fh.write('\t'.join(raw) + '\n')
+        norm_fh.write('\t'.join(norm) + '\n')
+
+    print('Done, see files in dir "{}"'.format(out_dir))
 
 # --------------------------------------------------
 if __name__ == '__main__':

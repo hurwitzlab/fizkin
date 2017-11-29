@@ -12,9 +12,7 @@ From: ubuntu:latest
     apt-get update
     apt-get install -y locales git build-essential autoconf libtool \
         pkg-config yaggo wget graphviz curl libcurl4-openssl-dev \
-        shtool libssl-dev 
-        #python3 python3-pip
-        #libjsoncpp-dev libjsoncpp1 
+        python3 python3-pip libssl-dev 
     locale-gen en_US.UTF-8
 
     #
@@ -44,7 +42,7 @@ From: ubuntu:latest
     #
     cd $APP_DIR
     git clone https://github.com/hurwitzlab/fizkin.git fizkin
-    #python3 -m pip install -r /app/fizkin/scripts/requirements.txt
+    python3 -m pip install -r /app/fizkin/scripts/requirements.txt
 
     #
     # Add CRAN to sources to get latest R
@@ -60,8 +58,6 @@ From: ubuntu:latest
     #
     ln -s /usr/bin/make /bin/make
 
-
-
     #
     # Install R modules (need the .Rprofile to indicate CRAN mirror)
     #
@@ -72,7 +68,7 @@ local({
   options(repos = r)
 })
 EOF
-    Rscript install.r
+    Rscript /app/fizkin/scripts/install.r
   
   
     # Mount points for TACC directories
