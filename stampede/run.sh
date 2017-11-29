@@ -14,7 +14,8 @@ EUC_DIST_PERCENT=0.1
 HASH_SIZE="100M"
 IMG="fizkin.img"
 IN_DIR=""
-JELLYFISH="singularity exec $IMG jellyfish"
+SINGULARITY_EXEC="singularity exec $IMG"
+JELLYFISH="$SINGULARITY_EXEC jellyfish"
 KMER_SIZE="20"
 MAX_SEQS=500000
 METADATA_FILE=""
@@ -112,6 +113,9 @@ while getopts :a:d:e:i:k:m:n:o:q:s:t:xh OPT; do
     esac
 done
 
+# --------------------------------------------------
+echo "Started $(date)"
+
 INPUT_FILES=$(mktemp)
 if [[ -n "$IN_DIR" ]]; then
     if [[ -d "$IN_DIR" ]]; then
@@ -145,6 +149,7 @@ echo "Will process NUM_FILES \"$NUM_FILES\""
 SUBSET_DIR="$OUT_DIR/subset"
 [[ ! -d "$SUBSET_DIR" ]] && mkdir -p "$SUBSET_DIR"
 
+# --------------------------------------------------
 #
 # 1. Subset files
 #
@@ -161,7 +166,7 @@ while read -r FILE; do
     if [[ -s "$SUBSET_FILE" ]]; then
         echo "SUBSET_FILE \"$SUBSET_FILE\" exists, skipping"
     else
-        echo "singularity exec $IMG fa_subset.py -o $SUBSET_DIR -n $MAX_SEQS $FILE" >> "$SUBSET_PARAM"
+        echo "$SINGULARITY_EXEC fa_subset.py -o $SUBSET_DIR -n $MAX_SEQS $FILE" >> "$SUBSET_PARAM"
     fi
 done < "$INPUT_FILES"
 
@@ -189,6 +194,7 @@ if [[ $NUM_SUBSET -lt 1 ]]; then
     exit 1
 fi
 
+# --------------------------------------------------
 #
 # 2. Index with Jellyfish
 #
@@ -234,13 +240,14 @@ if [[ $NUM_JF -lt 1 ]]; then
     exit 1
 fi
 
+# --------------------------------------------------
 #
 # 3. Compare all subset files to JF indexes
 #
 echo "Will process NUM_JF \"$NUM_JF\" files"
 
 QUERY_PARAM="$$.query.param"
-QUERY_CMD="singularity exec $IMG query_per_sequence 1"
+QUERY_CMD="$SINGULARITY_EXEC query_per_sequence 1"
 QUERY_DIR="$OUT_DIR/query"
 i=0
 while read -r FASTA; do
@@ -274,6 +281,10 @@ else
     rm "$QUERY_PARAM"
 fi
 
+# --------------------------------------------------
+#
+# 4. Count the number of reads for each comparison
+#
 QUERIES=$(mktemp)
 find "$QUERY_DIR" -type f > "$QUERIES"
 NUM_QUERIES=$(lc "$QUERIES")
@@ -296,17 +307,32 @@ while read -r QRY_FILE; do
 done < "$QUERIES"
 rm "$QUERIES"
 
+# --------------------------------------------------
+#
+# 5. Make the raw/normalized matrices from the mode counts
+#
 SNA_DIR="$OUT_DIR/sna"
 [[ ! -d "$SNA_DIR" ]] && mkdir -p "$SNA_DIR"
 
-MATRIX="$SNA_DIR/matrix.txt"
-singularity exec "$IMG" avg_modes.py -m "$MODE_DIR" -o "$MATRIX"
+$SINGULARITY_EXEC make_matrix.py -m "$MODE_DIR" -o "$SNA_DIR"
 
-if [[ ! -f "$MATRIX" ]]; then
-    echo "Failed to create MATRIX \"$MATRIX\""
+MATRIX_RAW="$SNA_DIR/matrix_raw.txt"
+if [[ ! -f "$MATRIX_RAW" ]]; then
+    echo "Failed to create MATRIX_RAW \"$MATRIX_RAW\""
     exit 1
 fi
 
+MATRIX_NORM="$SNA_DIR/matrix_normalized.txt"
+if [[ ! -f "$MATRIX_NORM" ]]; then
+    echo "Failed to create MATRIX_NORM \"$MATRIX_NORM\""
+    exit 1
+fi
+
+# --------------------------------------------------
+#
+# 6. Process any metadata file putting results into the "sna" 
+#    dir where it will be used by the "sna.r" program
+#
 if [[ -n "$METADATA_FILE" ]] && [[ -f "$METADATA_FILE" ]]; then
     echo "Processing METADATA_FILE \"$METADATA_FILE\""
 
@@ -320,13 +346,17 @@ if [[ -n "$METADATA_FILE" ]] && [[ -f "$METADATA_FILE" ]]; then
         --sampledist "$SAMPLE_DIST" 
 fi
 
+# --------------------------------------------------
+#
+# 7. Run the SNA/GBME programs, produce visualizations.
+#
 ALIAS_FILE_ARG=""
 [[ -n "$ALIAS_FILE" ]] && ALIAS_FILE_ARG="-a $ALIAS_FILE"
 
 GBME_PREVIOUS="$SNA_DIR/gbme.out"
 [[ -f "$GBME_PREVIOUS" ]] && rm -f "$GBME_PREVIOUS"
 
-singularity exec "$IMG" sna.r -f "$MATRIX" -o "$SNA_DIR" -s "sna-gbme.pdf" -n $NUM_SCANS $ALIAS_FILE_ARG
+$SINGULARITY_EXEC sna.r -f "$MATRIX_NORM" -o "$SNA_DIR" -s "sna-gbme.pdf" -n $NUM_SCANS $ALIAS_FILE_ARG
 
 GBME_OUT="$SNA_DIR/sna-gbme.pdf"
 if [[ ! -f "$GBME_OUT" ]]; then
@@ -334,5 +364,5 @@ if [[ ! -f "$GBME_OUT" ]]; then
     exit 1
 fi
 
-echo "Done, see \"$GBME_OUT\"."
+echo "Finished $(date)"
 echo "Comments to Ken Youens-Clark kyclark@email.arizona.edu"
