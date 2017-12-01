@@ -11,6 +11,7 @@
 
 set -u
 
-#./run.sh -i $WORK/data/dolphin/fasta -o $WORK/data/dolphin/fizkin-out
+#./run.sh -q "$WORK/data/dolphin/fasta" -o "$WORK/data/dolphin/fizkin-out"
+./run.sh -x 10000 -q "$WORK/data/dolphin/fasta" -o "$WORK/data/dolphin/fizkin-out-10K"
 
-./run.sh -q "$WORK/data/pov/fasta" -o "$WORK/data/pov/fizkin-out" -m '$WORK/data/pov/meta.tab"
+#./run.sh -q "$WORK/data/pov/fasta" -o "$WORK/data/pov/fizkin-out" -m "$WORK/data/pov/meta.tab"

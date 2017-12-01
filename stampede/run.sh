@@ -12,12 +12,13 @@ set -u
 ALIAS_FILE=""
 EUC_DIST_PERCENT=0.1
 HASH_SIZE="100M"
-IMG="fizkin.img"
 IN_DIR=""
+IMG="fizkin.img"
 SINGULARITY_EXEC="singularity exec $IMG"
 JELLYFISH="$SINGULARITY_EXEC jellyfish"
 KMER_SIZE="20"
 MAX_SEQS=500000
+MIN_MODE=1
 METADATA_FILE=""
 NUM_SCANS=20000
 OUT_DIR="$PWD/fizkin-out"
@@ -52,6 +53,7 @@ function HELP() {
     echo " -e EUC_DIST_PERCENT ($EUC_DIST_PERCENT)"
     echo " -k KMER_SIZE ($KMER_SIZE)"
     echo " -m METADATA_FILE"
+    echo " -M MIN_MODE ($MIN_MODE)"
     echo " -n NUM_SCANS ($NUM_SCANS)"
     echo " -o OUT_DIR ($OUT_DIR)"
     echo " -s HASH_SIZE ($HASH_SIZE)"
@@ -62,7 +64,7 @@ function HELP() {
 
 [[ $# -eq 0 ]] && HELP
 
-while getopts :a:d:e:i:k:m:n:o:q:s:t:xh OPT; do
+while getopts :a:d:e:i:k:m:M:n:o:q:s:t:x:h OPT; do
     case $OPT in
       a)
           ALIAS_FILE="$OPTARG"
@@ -84,6 +86,9 @@ while getopts :a:d:e:i:k:m:n:o:q:s:t:xh OPT; do
           ;;
       m)
           METADATA_FILE="$OPTARG"
+          ;;
+      M)
+          MIN_MODE="$OPTARG"
           ;;
       n)
           NUM_SCANS="$OPTARG"
@@ -114,6 +119,9 @@ while getopts :a:d:e:i:k:m:n:o:q:s:t:xh OPT; do
 done
 
 # --------------------------------------------------
+#
+# 0. Check input, set up
+#
 echo "Started $(date)"
 
 INPUT_FILES=$(mktemp)
@@ -136,55 +144,65 @@ elif [[ -n "$QUERY" ]]; then
     done
 fi
 
+if [[ $MIN_MODE -lt 1 ]]; then
+    echo "MIN_MODE \"$MIN_MODE\" must be greater than zero"
+    exit 1
+fi
+
 NUM_FILES=$(lc "$INPUT_FILES")
 if [[ $NUM_FILES -lt 1 ]]; then
     echo "Found no input files in QUERY/IN_DIR"
     exit 1
 fi
 
-echo "Will process NUM_FILES \"$NUM_FILES\""
-
 [[ ! -d "$OUT_DIR" ]] && mkdir -p "$OUT_DIR"
 
-SUBSET_DIR="$OUT_DIR/subset"
-[[ ! -d "$SUBSET_DIR" ]] && mkdir -p "$SUBSET_DIR"
 
 # --------------------------------------------------
 #
 # 1. Subset files
 #
-echo "Subsetting..."
-SUBSET_PARAM="$$.subset.param"
+if [[ $MAX_SEQS -gt 0 ]]; then
+    echo "Will subset NUM_FILES \"$NUM_FILES\" to MAX_SEQS \"$MAX_SEQS\""
 
-i=0
-while read -r FILE; do
-    let i++
-    BASENAME=$(basename "$FILE")
-    printf "%3d: %s\n" $i "$BASENAME"
+    SUBSET_DIR="$OUT_DIR/subset"
+    [[ ! -d "$SUBSET_DIR" ]] && mkdir -p "$SUBSET_DIR"
 
-    SUBSET_FILE="$SUBSET_DIR/$BASENAME"
-    if [[ -s "$SUBSET_FILE" ]]; then
-        echo "SUBSET_FILE \"$SUBSET_FILE\" exists, skipping"
+    SUBSET_PARAM="$$.subset.param"
+    i=0
+    while read -r FILE; do
+        let i++
+        BASENAME=$(basename "$FILE")
+        printf "%3d: %s\n" $i "$BASENAME"
+
+        SUBSET_FILE="$SUBSET_DIR/$BASENAME"
+        if [[ -s "$SUBSET_FILE" ]]; then
+            echo "SUBSET_FILE \"$SUBSET_FILE\" exists, skipping"
+        else
+            echo "$SINGULARITY_EXEC fa_subset.py -o $SUBSET_DIR -n $MAX_SEQS $FILE" >> "$SUBSET_PARAM"
+        fi
+    done < "$INPUT_FILES"
+
+    NJOBS=$(lc "$SUBSET_PARAM")
+
+    if [[ $NJOBS -lt 1 ]]; then
+        echo "No subset launcher jobs to run!"
     else
-        echo "$SINGULARITY_EXEC fa_subset.py -o $SUBSET_DIR -n $MAX_SEQS $FILE" >> "$SUBSET_PARAM"
+        export LAUNCHER_JOB_FILE="$SUBSET_PARAM"
+        [[ $NJOBS -ge 16 ]] && export LAUNCHER_PPN=16
+        echo "Starting NJOBS \"$NJOBS\" $(date)"
+        "$LAUNCHER_DIR/paramrun"
+        echo "Ended LAUNCHER $(date)"
+        rm "$SUBSET_PARAM"
     fi
-done < "$INPUT_FILES"
 
-NJOBS=$(lc "$SUBSET_PARAM")
-
-if [[ $NJOBS -lt 1 ]]; then
-    echo "No subset launcher jobs to run!"
+    SUBSET_FILES=$(mktemp)
+    find "$SUBSET_DIR" -type f -size +0c > "$SUBSET_FILES"
 else
-    export LAUNCHER_JOB_FILE="$SUBSET_PARAM"
-    [[ $NJOBS -ge 16 ]] && export LAUNCHER_PPN=16
-    echo "Starting NJOBS \"$NJOBS\" $(date)"
-    "$LAUNCHER_DIR/paramrun"
-    echo "Ended LAUNCHER $(date)"
-    rm "$SUBSET_PARAM"
+    echo "No MAX_SEQS, so using INPUT_FILES"
+    SUBSET_FILES="$INPUT_FILES"
 fi
 
-SUBSET_FILES=$(mktemp)
-find "$SUBSET_DIR" -type f -size +0c > "$SUBSET_FILES"
 NUM_SUBSET=$(lc "$SUBSET_FILES")
 
 echo "Created NUM_SUBSET \"$NUM_SUBSET\""
@@ -201,8 +219,8 @@ fi
 JF_DIR="$OUT_DIR/jf"
 [[ ! -d "$JF_DIR" ]] && mkdir -p "$JF_DIR"
 
-COUNT_PARAM="$$.count.param"
 COUNT_CMD="$JELLYFISH count -m $KMER_SIZE -t $THREADS -s $HASH_SIZE"
+COUNT_PARAM="$$.count.param"
 
 i=0
 while read -r FILE; do
@@ -247,7 +265,7 @@ fi
 echo "Will process NUM_JF \"$NUM_JF\" files"
 
 QUERY_PARAM="$$.query.param"
-QUERY_CMD="$SINGULARITY_EXEC query_per_sequence 1"
+QUERY_CMD="$SINGULARITY_EXEC query_per_sequence $MIN_MODE"
 QUERY_DIR="$OUT_DIR/query"
 i=0
 while read -r FASTA; do
@@ -303,7 +321,10 @@ while read -r QRY_FILE; do
     MODE_OUT_DIR="$MODE_DIR/$BASE_DIR"
     [[ ! -d "$MODE_OUT_DIR" ]] && mkdir -p "$MODE_OUT_DIR"
 
-    wc -l "$QRY_FILE" | awk '{print $1}' > "$MODE_OUT_DIR/$BASENAME"
+    MODE_FILE="$MODE_OUT_DIR/$BASENAME"
+    if [[ ! -f "$MODE_FILE" ]]; then
+        wc -l "$QRY_FILE" | awk '{print $1}' > "$MODE_FILE"
+    fi
 done < "$QUERIES"
 rm "$QUERIES"
 
@@ -358,6 +379,8 @@ GBME_PREVIOUS="$SNA_DIR/gbme.out"
 
 $SINGULARITY_EXEC sna.r -f "$MATRIX_NORM" -o "$SNA_DIR" -s "sna-gbme.pdf" -n $NUM_SCANS $ALIAS_FILE_ARG
 
+$SINGULARITY_EXEC make_pcoa.r -f "$MATRIX_NORM" -d "$SNA_DIR"
+
 GBME_OUT="$SNA_DIR/sna-gbme.pdf"
 if [[ ! -f "$GBME_OUT" ]]; then
     echo "Failed to create GBME_OUT \"$GBME_OUT\""
@@ -365,4 +388,5 @@ if [[ ! -f "$GBME_OUT" ]]; then
 fi
 
 echo "Finished $(date)"
+echo "See SNA_DIR \"$SNA_DIR\""
 echo "Comments to Ken Youens-Clark kyclark@email.arizona.edu"
