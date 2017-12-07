@@ -2,6 +2,7 @@
 
 library("optparse")
 library("vegan")
+library("R.utils")
 
 # set arguments
 option_list = list (
