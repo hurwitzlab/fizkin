@@ -6,17 +6,17 @@ library("R.utils")
 
 # set arguments
 option_list = list (
-    make_option(c("-d", "--dir"), 
-                type = "character", 
-                default = getwd(),
-                help = "set work directory (%default)"
-                ),  
     make_option(c("-f", "--file"), 
                 type = "character", 
                 default = "",
                 help = "Input file", 
                 metavar="character"
                 ),
+    make_option(c("-d", "--dir"), 
+                type = "character", 
+                default = '',
+                help = "set work directory (--file dir)"
+                ),  
     make_option(c("-o", "--out"), 
                 type = "character", 
                 default = "pcoa.pdf",
@@ -42,17 +42,22 @@ nreads     = opt$number
 out_file   = opt$out
 title      = opt$title
 
+
+# check arguments
+if (nchar(infile) == 0) {
+    stop("Missing --file")
+}
+
+if (nchar(out_dir) == 0) {
+    out_dir = dirname(infile)
+}
+
 if (!dir.exists(out_dir)) {
     printf("Creating outdir '%s'\n", out_dir)
     dir.create(out_dir)
 }
 
 setwd(out_dir)
-
-# check arguments
-if (nchar(infile) == 0) {
-    stop("Missing --file")
-}
 
 if (nreads < 1) {
     stop("--number (of reads) must be a positive integer")
