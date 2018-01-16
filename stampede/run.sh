@@ -7,12 +7,15 @@
 #SBATCH -t 24:00:00
 #SBATCH -A iPlant-Collabs
 
+module load tacc-singularity
+
 set -u
 
 ALIAS_FILE=""
 EUC_DIST_PERCENT=0.1
 HASH_SIZE="100M"
 IN_DIR=""
+#IMG="fizkin-2.2.6.img"
 IMG="fizkin.img"
 SINGULARITY_EXEC="singularity exec $IMG"
 JELLYFISH="$SINGULARITY_EXEC jellyfish"
@@ -144,8 +147,8 @@ elif [[ -n "$QUERY" ]]; then
     done
 fi
 
-if [[ $MIN_MODE -lt 1 ]]; then
-    echo "MIN_MODE \"$MIN_MODE\" must be greater than zero"
+if [[ $MIN_MODE -lt 0 ]]; then
+    echo "MIN_MODE \"$MIN_MODE\" must be greater or equal to zero"
     exit 1
 fi
 
@@ -216,10 +219,11 @@ fi
 #
 # 2. Index with Jellyfish
 #
-JF_DIR="$OUT_DIR/jf"
+#JF_DIR="$OUT_DIR/jf"
+JF_DIR="$OUT_DIR/jellyfish"
 [[ ! -d "$JF_DIR" ]] && mkdir -p "$JF_DIR"
 
-COUNT_CMD="$JELLYFISH count -m $KMER_SIZE -t $THREADS -s $HASH_SIZE"
+COUNT_CMD="$JELLYFISH count -m $KMER_SIZE -t $THREADS -s $HASH_SIZE --bf-size $HASH_SIZE"
 COUNT_PARAM="$$.count.param"
 
 i=0
@@ -268,23 +272,23 @@ QUERY_PARAM="$$.query.param"
 QUERY_CMD="$SINGULARITY_EXEC query_per_sequence $MIN_MODE"
 QUERY_DIR="$OUT_DIR/query"
 i=0
-while read -r FASTA; do
-    FA_BASENAME=$(basename "$FASTA")
-    QRY_DIR="$QUERY_DIR/$FA_BASENAME"
+while read -r INDEX; do
+    INDEX_BASENAME=$(basename "$INDEX")
+    QRY_DIR="$QUERY_DIR/$INDEX_BASENAME"
     [[ ! -d "$QRY_DIR" ]] && mkdir -p "$QRY_DIR"
 
-    while read -r INDEX; do
+    while read -r FASTA; do
         let i++
-        INDEX_BASENAME=$(basename "$INDEX")
-        printf "%3d: %s -> %s\n" $i "$FA_BASENAME" "$INDEX_BASENAME"
-        QUERY_OUT="$QRY_DIR/$INDEX_BASENAME"
-        if [[ -f "$QUERY_OUT" ]]; then
+        FASTA_BASENAME=$(basename "$FASTA")
+        printf "%3d: %s -> %s\n" $i "$INDEX_BASENAME" "$FASTA_BASENAME"
+        QUERY_OUT="$QRY_DIR/$FASTA_BASENAME"
+        if [[ -s "$QUERY_OUT" ]]; then
             echo "\"$QUERY_OUT\" exists, skipping"
         else
             echo "$QUERY_CMD $INDEX $FASTA > $QUERY_OUT" >> "$QUERY_PARAM"
         fi
-    done < "$JF_INDEXES"
-done < "$SUBSET_FILES"
+    done < "$SUBSET_FILES"
+done < "$JF_INDEXES"
 
 NJOBS=$(lc "$QUERY_PARAM")
 
