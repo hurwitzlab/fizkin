@@ -8,6 +8,7 @@
 #SBATCH -A iPlant-Collabs
 
 module load tacc-singularity
+module load launcher
 
 set -u
 
@@ -28,9 +29,9 @@ OUT_DIR="$PWD/fizkin-out"
 QUERY=""
 SAMPLE_DIST=1000
 THREADS=12
+PARAMRUN="$TACC_LAUNCHER_DIR/paramrun"
 
-export LAUNCHER_DIR="$HOME/src/launcher"
-export LAUNCHER_PLUGIN_DIR="$LAUNCHER_DIR/plugins"
+export LAUNCHER_PLUGIN_DIR="$TACC_LAUNCHER_DIR/plugins"
 export LAUNCHER_WORKDIR="$PWD"
 export LAUNCHER_RMI="SLURM"
 export LAUNCHER_SCHED="interleaved"
@@ -194,7 +195,7 @@ if [[ $MAX_SEQS -gt 0 ]]; then
         export LAUNCHER_JOB_FILE="$SUBSET_PARAM"
         [[ $NJOBS -ge 16 ]] && export LAUNCHER_PPN=16
         echo "Starting NJOBS \"$NJOBS\" $(date)"
-        "$LAUNCHER_DIR/paramrun"
+        $PARAMRUN
         echo "Ended LAUNCHER $(date)"
         rm "$SUBSET_PARAM"
     fi
@@ -248,7 +249,7 @@ else
     export LAUNCHER_JOB_FILE="$COUNT_PARAM"
     [[ $NJOBS -ge 16 ]] && export LAUNCHER_PPN=16
     echo "Starting NJOBS \"$NJOBS\" $(date)"
-    "$LAUNCHER_DIR/paramrun"
+    $PARAMRUN
     echo "Ended LAUNCHER $(date)"
     rm "$COUNT_PARAM"
 fi
@@ -298,7 +299,7 @@ else
     export LAUNCHER_JOB_FILE="$QUERY_PARAM"
     [[ $NJOBS -ge 16 ]] && export LAUNCHER_PPN=16
     echo "Starting NJOBS \"$NJOBS\" $(date)"
-    "$LAUNCHER_DIR/paramrun"
+    $PARAMRUN
     echo "Ended LAUNCHER $(date)"
     rm "$QUERY_PARAM"
 fi

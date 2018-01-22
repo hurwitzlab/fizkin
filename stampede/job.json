@@ -1,0 +1,46 @@
+{
+  "name":"fizkin test-1513181996",
+  "appId": "fizkin-0.0.3",
+  "batchQueue": "normal",
+  "executionSystem": "tacc-stampede2-kyclark",
+  "maxRunTime": "12:00:00",
+  "memoryPerNode": "32GB",
+  "nodeCount": 1,
+  "processorsPerNode": 16,
+  "archive": true,
+  "archiveSystem": "data.iplantcollaborative.org",
+  "archivePath": null,
+  "inputs": {
+    "QUERY": [ 
+      "/kyclark/data/dolphin/fasta"
+    ],
+    "ALIAS_FILE": "",
+    "METADATA_FILE": "/kyclark/data/dolphin/meta.tab"
+  },
+  "parameters": {
+    "EUC_DIST_PERCENT": "0.05",
+    "KMER_SIZE": "21",
+    "MIN_MODE": "1",
+    "MAX_SEQS": "500000",
+    "HASH_SIZE": "100M",
+    "SAMPLE_DIST": "500",
+    "NUM_SCANS": "30000"
+  },
+  "notifications": [
+    {
+      "url":"https://requestbin.agaveapi.co/wnegbwwn?job_id=${JOB_ID}&status=${JOB_STATUS}",
+      "event":"*",
+      "persistent":true
+    },
+    {
+      "url":"kyclark@gmail.com",
+      "event":"FINISHED",
+          "persistent":false
+    },
+    {
+      "url":"kyclark@gmail.com",
+      "event":"FAILED",
+      "persistent":false
+    }
+  ]
+}
