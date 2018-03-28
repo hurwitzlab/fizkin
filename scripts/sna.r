@@ -10,7 +10,6 @@ library("optparse")
 library("R.utils")
 library("vegan")
 library("xtable")
-library("philentropy")
 
 cargs = commandArgs(trailingOnly = FALSE)
 source_dir = dirname(sub("^--file=", "", cargs[grep("^--file=", cargs)]))
