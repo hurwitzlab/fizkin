@@ -10,6 +10,7 @@ library("optparse")
 library("R.utils")
 library("vegan")
 library("xtable")
+library("philentropy")
 
 cargs = commandArgs(trailingOnly = FALSE)
 source_dir = dirname(sub("^--file=", "", cargs[grep("^--file=", cargs)]))
@@ -92,6 +93,7 @@ if (file.exists(GBME_OUT)) {
       if (k == 1) { '' } else {'s'}, meta_dir)
 
     if (k > 0) {
+      n = length(readLines(file.path(meta_dir, meta_files[1]))) - 1
       Xss = array(NA, dim = c(n,n,k))
 
       for (i in 1:k) {
@@ -99,6 +101,7 @@ if (file.exists(GBME_OUT)) {
         Xss[,,i] = as.matrix(read.table(file, header = TRUE))
       }
     }
+    print(Xss)
   }
 
   printf("Reading %s matrix\n", matrix_file)
