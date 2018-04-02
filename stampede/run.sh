@@ -14,6 +14,7 @@ set -u
 
 ALIAS_FILE=""
 EUC_DIST_PERCENT=0.1
+DISTANCE_ALGORITHM="euclidean"
 HASH_SIZE="100M"
 IN_DIR=""
 #IMG="fizkin-2.2.6.img"
@@ -23,6 +24,7 @@ JELLYFISH="$SINGULARITY_EXEC jellyfish"
 KMER_SIZE="20"
 MAX_SEQS=500000
 MIN_MODE=1
+MIN_KMERS_MODE=30
 METADATA_FILE=""
 NUM_SCANS=20000
 OUT_DIR="$PWD/fizkin-out"
@@ -54,8 +56,10 @@ function HELP() {
     echo "Optional arguments:"
     echo " -a ALIAS_FILE"
     echo " -d SAMPLE_DIST ($SAMPLE_DIST)"
+    echo " -D DISTANCE_ALGORITHM ($DISTANCE_ALGORITHM)"
     echo " -e EUC_DIST_PERCENT ($EUC_DIST_PERCENT)"
     echo " -k KMER_SIZE ($KMER_SIZE)"
+    echo " -K MIN_KMERS_MODE ($MIN_KMERS_MODE)"
     echo " -m METADATA_FILE"
     echo " -M MIN_MODE ($MIN_MODE)"
     echo " -n NUM_SCANS ($NUM_SCANS)"
@@ -76,6 +80,9 @@ while getopts :a:d:e:i:k:m:M:n:o:q:s:t:x:h OPT; do
       d)
           SAMPLE_DIST="$OPTARG"
           ;;
+      D)
+          DISTANCE_ALGORITHM="$OPTARG"
+          ;;
       e)
           EUC_DIST_PERCENT="$OPTARG"
           ;;
@@ -87,6 +94,9 @@ while getopts :a:d:e:i:k:m:M:n:o:q:s:t:x:h OPT; do
           ;;
       k)
           KMER_SIZE="$OPTARG"
+          ;;
+      K)
+          MIN_KMERS_MODE="$OPTARG"
           ;;
       m)
           METADATA_FILE="$OPTARG"
@@ -150,6 +160,11 @@ fi
 
 if [[ $MIN_MODE -lt 0 ]]; then
     echo "MIN_MODE \"$MIN_MODE\" must be greater or equal to zero"
+    exit 1
+fi
+
+if [[ $MIN_KMERS_MODE -lt 1 ]]; then
+    echo "MIN_KMERS_MODE \"$MIN_KMERS_MODE\" must be greater or equal to one"
     exit 1
 fi
 
@@ -270,7 +285,7 @@ fi
 echo "Will process NUM_JF \"$NUM_JF\" files"
 
 QUERY_PARAM="$$.query.param"
-QUERY_CMD="$SINGULARITY_EXEC query_per_sequence $MIN_MODE"
+QUERY_CMD="$SINGULARITY_EXEC query_per_sequence $MIN_MODE $MIN_KMERS_MODE"
 QUERY_DIR="$OUT_DIR/query"
 i=0
 while read -r INDEX; do
