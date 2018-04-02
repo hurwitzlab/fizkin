@@ -25,7 +25,7 @@ option_list = list(
   ),
   make_option(
     c("-o", "--outdir"),
-    default = getwd(),
+    default = file.path(getwd(), 'sna'),
     type = "character",
     help = "outdir",
     metavar = "character"
@@ -39,7 +39,7 @@ option_list = list(
   ),
   make_option(
     c("-n", "--number"),
-    default = as.integer(100000),
+    default = as.integer(50000),
     type = "integer",
     help = "number iterations",
     metavar = "integer"
@@ -76,7 +76,9 @@ setwd(out_dir)
 
 GBME_OUT = file.path(out_dir, "gbme.out")
 
-if (!file.exists(GBME_OUT)) {
+if (file.exists(GBME_OUT)) {
+  printf("Will use existing GMBE out '%s'\n", GBME_OUT)
+} else {
   # Look for the "*.meta" files 
   meta_dir = file.path(out_dir, "meta")
 
@@ -90,6 +92,7 @@ if (!file.exists(GBME_OUT)) {
       if (k == 1) { '' } else {'s'}, meta_dir)
 
     if (k > 0) {
+      n = length(readLines(file.path(meta_dir, meta_files[1]))) - 1
       Xss = array(NA, dim = c(n,n,k))
 
       for (i in 1:k) {
@@ -97,10 +100,12 @@ if (!file.exists(GBME_OUT)) {
         Xss[,,i] = as.matrix(read.table(file, header = TRUE))
       }
     }
+    print(Xss)
   }
 
   printf("Reading %s matrix\n", matrix_file)
-  #Y = as.matrix(read.table(matrix_file, header = TRUE))
+  Y = as.matrix(read.table(matrix_file, header = TRUE))
+  #print(Y)
   n = nrow(Y)
   args = c(Xss, fam = "gaussian", k = 2, direct = F, NS = n_iter, odens = 10, ofilename = GBME_OUT)
 
@@ -259,4 +264,4 @@ png(file.path(out_dir, 'vegan-tree.png'))
 tree = spantree(as.dist(as.matrix(dist)))
 plot(tree, type="t")
 
-printf("Done\n")
+printf("Done, see output dir '%s'\n", out_dir)

@@ -14,6 +14,7 @@ set -u
 
 ALIAS_FILE=""
 EUC_DIST_PERCENT=0.1
+DISTANCE_ALGORITHM="euclidean"
 HASH_SIZE="100M"
 IN_DIR=""
 #IMG="fizkin-2.2.6.img"
@@ -56,6 +57,7 @@ function HELP() {
     echo "Optional arguments:"
     echo " -a ALIAS_FILE"
     echo " -d SAMPLE_DIST ($SAMPLE_DIST)"
+    echo " -D DISTANCE_ALGORITHM ($DISTANCE_ALGORITHM)"
     echo " -e EUC_DIST_PERCENT ($EUC_DIST_PERCENT)"
     echo " -k KMER_SIZE ($KMER_SIZE)"
     echo " -K MIN_NUM_KMERS_FOR_MODE ($MIN_NUM_KMERS_FOR_MODE)"
@@ -78,6 +80,9 @@ while getopts :a:d:e:i:k:K:m:M:n:o:q:s:t:x:h OPT; do
           ;;
       d)
           SAMPLE_DIST="$OPTARG"
+          ;;
+      D)
+          DISTANCE_ALGORITHM="$OPTARG"
           ;;
       e)
           EUC_DIST_PERCENT="$OPTARG"
@@ -157,6 +162,11 @@ fi
 
 if [[ $MIN_MODE -lt 0 ]]; then
     echo "MIN_MODE \"$MIN_MODE\" must be greater or equal to zero"
+    exit 1
+fi
+
+if [[ $MIN_KMERS_MODE -lt 1 ]]; then
+    echo "MIN_KMERS_MODE \"$MIN_KMERS_MODE\" must be greater or equal to one"
     exit 1
 fi
 

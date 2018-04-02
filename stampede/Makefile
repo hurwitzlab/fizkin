@@ -50,4 +50,13 @@ sap_pyo:
 	sbatch -J sap_pyo ./run.sh -x 300000 -q $(WORK)/data/bugs/sap_pyo/fasta -o $(WORK)/data/bugs/sap_pyo/fizkin-out-300
 
 myriam:
-	sbatch -J myriam ./run.sh -q $(WORK)/myriam/DiversityLakeA/corrected -o $(WORK)/myriam/DiversityLakeA/fizkin-corrected #-m $(SCRATCH)/myriam/DiversityLakeA/samplesmetadata.tab 
+	sbatch -J myriam ./run.sh -q $(WORK)/myriam/lake_a/corrected -o $(WORK)/myriam/lake_a/fizkin #-m $(SCRATCH)/myriam/DiversityLakeA/samplesmetadata.tab 
+
+mock250:
+	sbatch -J fizmck ./run.sh -q $(WORK)/data/mock_communities/test -o $(WORK)/data/mock_communities/fizkin-250 -x 250000
+
+mock500:
+	sbatch -J fizmck ./run.sh -q $(WORK)/data/mock_communities/test -o $(WORK)/data/mock_communities/fizkin-500 -x 500000
+
+mock1M:
+	sbatch -J fizmck ./run.sh -q $(WORK)/data/mock_communities/test -o $(WORK)/data/mock_communities/fizkin-1M -x 1000000

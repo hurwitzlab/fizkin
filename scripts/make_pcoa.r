@@ -65,10 +65,6 @@ if (nreads < 1) {
 
 # input fizkin matrix
 fiz = as.data.frame(read.table(infile, header = TRUE))
-#fiz = as.data.frame(read.table(infile, sep = ',', row.names = 1, header = TRUE))
-#colnames(fiz) = row.names(fiz)
-
-#print(fiz)
 
 # scaling to mash range (0 to 1)
 fiz = fiz/nreads
