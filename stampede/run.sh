@@ -23,6 +23,7 @@ JELLYFISH="$SINGULARITY_EXEC jellyfish"
 KMER_SIZE="20"
 MAX_SEQS=500000
 MIN_MODE=1
+MIN_NUM_KMERS_FOR_MODE=30
 METADATA_FILE=""
 NUM_SCANS=20000
 OUT_DIR="$PWD/fizkin-out"
@@ -30,6 +31,7 @@ QUERY=""
 SAMPLE_DIST=1000
 THREADS=12
 PARAMRUN="$TACC_LAUNCHER_DIR/paramrun"
+SEP="# --------------------------------------------------"
 
 export LAUNCHER_PLUGIN_DIR="$TACC_LAUNCHER_DIR/plugins"
 export LAUNCHER_WORKDIR="$PWD"
@@ -56,6 +58,7 @@ function HELP() {
     echo " -d SAMPLE_DIST ($SAMPLE_DIST)"
     echo " -e EUC_DIST_PERCENT ($EUC_DIST_PERCENT)"
     echo " -k KMER_SIZE ($KMER_SIZE)"
+    echo " -K MIN_NUM_KMERS_FOR_MODE ($MIN_NUM_KMERS_FOR_MODE)"
     echo " -m METADATA_FILE"
     echo " -M MIN_MODE ($MIN_MODE)"
     echo " -n NUM_SCANS ($NUM_SCANS)"
@@ -68,7 +71,7 @@ function HELP() {
 
 [[ $# -eq 0 ]] && HELP
 
-while getopts :a:d:e:i:k:m:M:n:o:q:s:t:x:h OPT; do
+while getopts :a:d:e:i:k:K:m:M:n:o:q:s:t:x:h OPT; do
     case $OPT in
       a)
           ALIAS_FILE="$OPTARG"
@@ -87,6 +90,9 @@ while getopts :a:d:e:i:k:m:M:n:o:q:s:t:x:h OPT; do
           ;;
       k)
           KMER_SIZE="$OPTARG"
+          ;;
+      K)
+          MIN_NUM_KMERS_FOR_MODE="$OPTARG"
           ;;
       m)
           METADATA_FILE="$OPTARG"
@@ -137,6 +143,7 @@ if [[ -n "$IN_DIR" ]]; then
         exit 1
     fi
 elif [[ -n "$QUERY" ]]; then
+    echo "QUERY \"$QUERY\""
     for QRY in $QUERY; do
         if [[ -f "$QRY" ]]; then
             echo "$QRY" >> "$INPUT_FILES"
@@ -161,12 +168,12 @@ fi
 
 [[ ! -d "$OUT_DIR" ]] && mkdir -p "$OUT_DIR"
 
-
 # --------------------------------------------------
 #
 # 1. Subset files
 #
 if [[ $MAX_SEQS -gt 0 ]]; then
+    echo "$SEP"
     echo "Will subset NUM_FILES \"$NUM_FILES\" to MAX_SEQS \"$MAX_SEQS\""
 
     SUBSET_DIR="$OUT_DIR/subset"
@@ -192,11 +199,14 @@ if [[ $MAX_SEQS -gt 0 ]]; then
     if [[ $NJOBS -lt 1 ]]; then
         echo "No subset launcher jobs to run!"
     else
-        export LAUNCHER_JOB_FILE="$SUBSET_PARAM"
-        [[ $NJOBS -ge 16 ]] && export LAUNCHER_PPN=16
         echo "Starting NJOBS \"$NJOBS\" $(date)"
+        LAUNCHER_JOB_FILE="$SUBSET_PARAM"
+        LAUNCHER_PPN=$NJOBS
+        export LAUNCHER_JOB_FILE
+        export LAUNCHER_PPN
         $PARAMRUN
         echo "Ended LAUNCHER $(date)"
+        unset LAUNCHER_PPN
         rm "$SUBSET_PARAM"
     fi
 
@@ -220,7 +230,8 @@ fi
 #
 # 2. Index with Jellyfish
 #
-#JF_DIR="$OUT_DIR/jf"
+echo "$SEP"
+echo "Indexing with Jellyfish"
 JF_DIR="$OUT_DIR/jellyfish"
 [[ ! -d "$JF_DIR" ]] && mkdir -p "$JF_DIR"
 
@@ -246,7 +257,10 @@ NJOBS=$(lc "$COUNT_PARAM")
 if [[ $NJOBS -lt 1 ]]; then
     echo "No counting launcher jobs to run!"
 else
-    export LAUNCHER_JOB_FILE="$COUNT_PARAM"
+    LAUNCHER_JOB_FILE="$COUNT_PARAM"
+    LAUNCHER_PPN=$NJOBS
+    export LAUNCHER_JOB_FILE
+    export LAUNCHER_PPN
     [[ $NJOBS -ge 16 ]] && export LAUNCHER_PPN=16
     echo "Starting NJOBS \"$NJOBS\" $(date)"
     $PARAMRUN
@@ -267,10 +281,11 @@ fi
 #
 # 3. Compare all subset files to JF indexes
 #
+echo "$SEP"
 echo "Will process NUM_JF \"$NUM_JF\" files"
 
 QUERY_PARAM="$$.query.param"
-QUERY_CMD="$SINGULARITY_EXEC query_per_sequence $MIN_MODE"
+QUERY_CMD="$SINGULARITY_EXEC query_per_sequence $MIN_MODE $MIN_NUM_KMERS_FOR_MODE"
 QUERY_DIR="$OUT_DIR/query"
 i=0
 while read -r INDEX; do
@@ -296,8 +311,10 @@ NJOBS=$(lc "$QUERY_PARAM")
 if [[ $NJOBS -lt 1 ]]; then
     echo "No query launcher jobs to run"
 else
-    export LAUNCHER_JOB_FILE="$QUERY_PARAM"
-    [[ $NJOBS -ge 16 ]] && export LAUNCHER_PPN=16
+    LAUNCHER_JOB_FILE="$QUERY_PARAM"
+    LAUNCHER_PPN=$NJOBS
+    export LAUNCHER_JOB_FILE
+    export LAUNCHER_PPN
     echo "Starting NJOBS \"$NJOBS\" $(date)"
     $PARAMRUN
     echo "Ended LAUNCHER $(date)"
@@ -317,12 +334,17 @@ if [[ $NUM_QUERIES -lt 1 ]]; then
     exit 1
 fi
 
+echo "$SEP"
 echo "Counting NUM_QUERIES \"$NUM_QUERIES\""
 
 MODE_DIR="$OUT_DIR/mode"
+READS_DIR="$OUT_DIR/reads"
+READS_PARAM="$$.reads.param"
+
 while read -r QRY_FILE; do
     BASENAME=$(basename "$QRY_FILE")
     BASE_DIR=$(basename "$(dirname "$QRY_FILE")")
+
     MODE_OUT_DIR="$MODE_DIR/$BASE_DIR"
     [[ ! -d "$MODE_OUT_DIR" ]] && mkdir -p "$MODE_OUT_DIR"
 
@@ -330,13 +352,34 @@ while read -r QRY_FILE; do
     if [[ ! -f "$MODE_FILE" ]]; then
         wc -l "$QRY_FILE" | awk '{print $1}' > "$MODE_FILE"
     fi
+
+    READS_OUT_DIR="$READS_DIR/$BASE_DIR"
+    [[ ! -d "$READS_OUT_DIR" ]] && mkdir -p "$READS_OUT_DIR"
+
+    READS_FILE="$READS_OUT_DIR/$BASENAME"
+    if [[ ! -f "$READS_FILE" ]]; then
+        echo "$SINGULARITY_EXEC get_reads_by_id.py -r $SUBSET_DIR/$BASENAME -i $QRY_FILE -o $READS_FILE" >> "$READS_PARAM"
+    fi
 done < "$QUERIES"
 rm "$QUERIES"
+
+NUM_READS_JOBS=$(wc "$READS_PARAM")
+if [[ $NUM_READS_JOBS -gt 0 ]]; then
+    echo "Creating reads files"
+    LAUNCHER_JOB_FILE="$READS_PARAM"
+    LAUNCHER_PPN=8
+    export LAUNCHER_JOB_FILE
+    export LAUNCHER_PPN
+    $PARAMRUN
+fi
 
 # --------------------------------------------------
 #
 # 5. Make the raw/normalized matrices from the mode counts
 #
+echo "$SEP"
+echo "Summing reads into matrices"
+
 SNA_DIR="$OUT_DIR/sna"
 [[ ! -d "$SNA_DIR" ]] && mkdir -p "$SNA_DIR"
 
@@ -360,6 +403,7 @@ fi
 #    dir where it will be used by the "sna.r" program
 #
 if [[ -n "$METADATA_FILE" ]] && [[ -f "$METADATA_FILE" ]]; then
+    echo "$SEP"
     echo "Processing METADATA_FILE \"$METADATA_FILE\""
 
     META_DIR="$SNA_DIR/meta"
@@ -374,8 +418,11 @@ fi
 
 # --------------------------------------------------
 #
-# 7. Run the SNA/GBME programs, produce visualizations.
+# 7. Run the SNA/GBME/PCOA programs, produce visualizations.
 #
+echo "$SEP"
+echo "Running GMBE/SNA"
+
 ALIAS_FILE_ARG=""
 [[ -n "$ALIAS_FILE" ]] && ALIAS_FILE_ARG="-a $ALIAS_FILE"
 
@@ -384,14 +431,13 @@ GBME_PREVIOUS="$SNA_DIR/gbme.out"
 
 $SINGULARITY_EXEC sna.r -f "$MATRIX_NORM" -o "$SNA_DIR" -s "sna-gbme.pdf" -n $NUM_SCANS $ALIAS_FILE_ARG
 
+GBME_OUT="$SNA_DIR/sna-gbme.pdf"
+[[ ! -f "$GBME_OUT" ]] && echo "Failed to create GBME_OUT \"$GBME_OUT\""
+
+echo "Running PCOA"
 $SINGULARITY_EXEC make_pcoa.r -f "$MATRIX_NORM" -d "$SNA_DIR"
 
-GBME_OUT="$SNA_DIR/sna-gbme.pdf"
-if [[ ! -f "$GBME_OUT" ]]; then
-    echo "Failed to create GBME_OUT \"$GBME_OUT\""
-    exit 1
-fi
-
+echo "$SEP"
 echo "Finished $(date)"
 echo "See SNA_DIR \"$SNA_DIR\""
 echo "Comments to Ken Youens-Clark kyclark@email.arizona.edu"
