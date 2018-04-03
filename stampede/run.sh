@@ -24,7 +24,7 @@ JELLYFISH="$SINGULARITY_EXEC jellyfish"
 KMER_SIZE="20"
 MAX_SEQS=500000
 MIN_MODE=1
-MIN_NUM_KMERS_FOR_MODE=30
+PCT_KMER_READ_COVERAGE=30
 METADATA_FILE=""
 NUM_SCANS=20000
 OUT_DIR="$PWD/fizkin-out"
@@ -60,7 +60,7 @@ function HELP() {
     echo " -D DISTANCE_ALGORITHM ($DISTANCE_ALGORITHM)"
     echo " -e EUC_DIST_PERCENT ($EUC_DIST_PERCENT)"
     echo " -k KMER_SIZE ($KMER_SIZE)"
-    echo " -K MIN_NUM_KMERS_FOR_MODE ($MIN_NUM_KMERS_FOR_MODE)"
+    echo " -K PCT_KMER_READ_COVERAGE ($PCT_KMER_READ_COVERAGE)"
     echo " -m METADATA_FILE"
     echo " -M MIN_MODE ($MIN_MODE)"
     echo " -n NUM_SCANS ($NUM_SCANS)"
@@ -97,7 +97,7 @@ while getopts :a:d:e:i:k:K:m:M:n:o:q:s:t:x:h OPT; do
           KMER_SIZE="$OPTARG"
           ;;
       K)
-          MIN_NUM_KMERS_FOR_MODE="$OPTARG"
+          PCT_KMER_READ_COVERAGE="$OPTARG"
           ;;
       m)
           METADATA_FILE="$OPTARG"
@@ -295,7 +295,7 @@ echo "$SEP"
 echo "Will process NUM_JF \"$NUM_JF\" files"
 
 QUERY_PARAM="$$.query.param"
-QUERY_CMD="$SINGULARITY_EXEC query_per_sequence $MIN_MODE $MIN_NUM_KMERS_FOR_MODE"
+QUERY_CMD="$SINGULARITY_EXEC query_per_sequence $MIN_MODE $PCT_KMER_READ_COVERAGE"
 QUERY_DIR="$OUT_DIR/query"
 i=0
 while read -r INDEX; do
