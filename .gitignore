@@ -2,3 +2,4 @@
 *.param
 *.Rout
 *.img
+.DS_Store

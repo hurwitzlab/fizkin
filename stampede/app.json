@@ -2,7 +2,7 @@
     "name": "fizkin",
     "version": "0.0.4",
     "shortDescription": "Pairwise sequence comparison via Jellyfish",
-    "longDescription": "Pairwise sequence comparison via Jellyfish/GBME",
+    "longDescription": "Pairwise sequence comparison via Jellyfish",
     "available": true,
     "checkpointable": false,
     "defaultMemoryPerNode": 32,
