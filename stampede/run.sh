@@ -165,8 +165,8 @@ if [[ $MIN_MODE -lt 0 ]]; then
     exit 1
 fi
 
-if [[ $MIN_KMERS_MODE -lt 1 ]]; then
-    echo "MIN_KMERS_MODE \"$MIN_KMERS_MODE\" must be greater or equal to one"
+if [[ $MIN_NUM_KMERS_FOR_MODE -lt 1 ]]; then
+    echo "MIN_NUM_KMERS_FOR_MODE \"$MIN_NUM_KMERS_FOR_MODE\" must be greater or equal to one"
     exit 1
 fi
 
@@ -348,8 +348,6 @@ echo "$SEP"
 echo "Counting NUM_QUERIES \"$NUM_QUERIES\""
 
 MODE_DIR="$OUT_DIR/mode"
-READS_DIR="$OUT_DIR/reads"
-READS_PARAM="$$.reads.param"
 
 while read -r QRY_FILE; do
     BASENAME=$(basename "$QRY_FILE")
@@ -360,28 +358,10 @@ while read -r QRY_FILE; do
 
     MODE_FILE="$MODE_OUT_DIR/$BASENAME"
     if [[ ! -f "$MODE_FILE" ]]; then
-        wc -l "$QRY_FILE" | awk '{print $1}' > "$MODE_FILE"
-    fi
-
-    READS_OUT_DIR="$READS_DIR/$BASE_DIR"
-    [[ ! -d "$READS_OUT_DIR" ]] && mkdir -p "$READS_OUT_DIR"
-
-    READS_FILE="$READS_OUT_DIR/$BASENAME"
-    if [[ ! -f "$READS_FILE" ]]; then
-        echo "$SINGULARITY_EXEC get_reads_by_id.py -r $SUBSET_DIR/$BASENAME -i $QRY_FILE -o $READS_FILE" >> "$READS_PARAM"
+        grep '^>' "$QRY_FILE" | wc -l > "$MODE_FILE"
     fi
 done < "$QUERIES"
 rm "$QUERIES"
-
-NUM_READS_JOBS=$(wc "$READS_PARAM")
-if [[ $NUM_READS_JOBS -gt 0 ]]; then
-    echo "Creating reads files"
-    LAUNCHER_JOB_FILE="$READS_PARAM"
-    LAUNCHER_PPN=8
-    export LAUNCHER_JOB_FILE
-    export LAUNCHER_PPN
-    $PARAMRUN
-fi
 
 # --------------------------------------------------
 #
@@ -444,8 +424,35 @@ $SINGULARITY_EXEC sna.r -f "$MATRIX_NORM" -o "$SNA_DIR" -s "sna-gbme.pdf" -n $NU
 GBME_OUT="$SNA_DIR/sna-gbme.pdf"
 [[ ! -f "$GBME_OUT" ]] && echo "Failed to create GBME_OUT \"$GBME_OUT\""
 
+echo "$SEP"
 echo "Running PCOA"
 $SINGULARITY_EXEC make_pcoa.r -f "$MATRIX_NORM" -d "$SNA_DIR"
+
+echo "$SEP"
+echo "Make Dendrograms"
+$SINGULARITY_EXEC make_dendrograms.r -m "$MATRIX_NORM" -o "$SNA_DIR/figures"
+
+echo "$SEP"
+echo "Compressing query dir"
+GZIP_PARAM="$$.gzip.param"
+find "$QUERY_DIR" -type f -exec echo {} \; > "$GZIP_PARAM"
+NJOBS=$(lc "$GZIP_PARAM")
+if [[ $NJOBS -lt 1 ]]; then
+    echo "No subset launcher jobs to run!"
+else
+    echo "Starting NJOBS \"$NJOBS\" $(date)"
+    LAUNCHER_JOB_FILE="$GZIP_PARAM"
+    LAUNCHER_PPN=
+    if [[ $LAUNCHER_PPN -gt 16 ]]; then
+        LAUNCHER_PPN=16
+    fi
+    export LAUNCHER_JOB_FILE
+    export LAUNCHER_PPN
+    $PARAMRUN
+    echo "Ended LAUNCHER $(date)"
+    unset LAUNCHER_PPN
+fi
+rm "$GZIP_PARAM"
 
 echo "$SEP"
 echo "Finished $(date)"
