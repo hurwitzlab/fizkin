@@ -1,10 +1,7 @@
 #!/usr/bin/env Rscript
 
-library("optparse")
-library("R.utils")
-library("ggdendro")
-library("ggplot2")
-library("gplots")
+suppressMessages(library("optparse"))
+suppressMessages(library("R.utils"))
 
 option_list = list (
   make_option(c("-m", "--mode_dir"), 
@@ -50,10 +47,6 @@ if (nchar(out.dir) == 0) {
 if (!dir.exists(out.dir)) {
   dir.create(out.dir)
 }
-
-mode.dir = "~/work/fizkin-paper/ecoli_flex/mode"
-out.dir = "~/work/fizkin-paper/ecoli_flex/sna"
-num.reads = 500000
 
 if (!dir.exists(out.dir)) {
   dir.create(out.dir)
