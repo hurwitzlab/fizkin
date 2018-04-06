@@ -44,6 +44,8 @@ if (!dir.exists(out_dir)) {
   dir.create(out_dir)
 }
 
+matrix_file = "~/work/fizkin-paper/sna/matrix_normalized.txt"
+out_dir = "~/work/fizkin-paper/sna/figures"
 dat = read.table(matrix_file, header = TRUE)
 
 for (dmethod in c("manhattan", "euclidean", "squared_euclidean", "pearson", "avg")) {
@@ -54,7 +56,7 @@ for (dmethod in c("manhattan", "euclidean", "squared_euclidean", "pearson", "avg
   ggsave(out.file, 
          width=5, 
          height=5,
-         plot=ggdendro::ggdendrogram(fit, rotate=T) + ggtitle(dmethod))
+         plot=ggdendro::ggdendrogram(fit, rotate=T) + ggtitle("dmethod"))
   
   # PCOA plot
   fiz_pcoa = rda(df)
