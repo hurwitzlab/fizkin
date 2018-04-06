@@ -85,5 +85,6 @@ dist.df = 1 - norm.df
 write.table(avg.df, file = file.path(out.dir, "matrix_raw.tab"))
 write.table(norm.df, file = file.path(out.dir, "matrix_norm.tab"))
 write.table(dist.df, file = file.path(out.dir, "matrix_dist.tab"))
+write.table(log(avg.df), file = file.path(out.dir, "matrix_log.tab"))
 
 printf("Done, wrote raw/norm files to out_dir '%s'\n", out.dir)
