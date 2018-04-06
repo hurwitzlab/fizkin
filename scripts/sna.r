@@ -3,13 +3,13 @@
 #
 # Runs the social network analysis using Peter Hoff's GBME
 #
-library("hash")
-library("igraph")
-library("networkD3")
-library("optparse")
-library("R.utils")
-library("vegan")
-library("xtable")
+suppressMessages(library("hash"))
+suppressMessages(library("igraph"))
+suppressMessages(library("networkD3"))
+suppressMessages(library("optparse"))
+suppressMessages(library("R.utils"))
+suppressMessages(library("vegan"))
+suppressMessages(library("xtable"))
 
 cargs = commandArgs(trailingOnly = FALSE)
 source_dir = dirname(sub("^--file=", "", cargs[grep("^--file=", cargs)]))
