@@ -44,7 +44,7 @@ if (!dir.exists(out.dir)) {
   dir.create(out.dir)
 }
 
-#matrix.file = "~/work/fizkin-paper/ecoli_flex/figures/matrix_norm.tab"
+#matrix.file = "~/work/fizkin-paper/fizkin/ecoli_flex/figures/matrix_norm.tab"
 #out.dir = dirname(matrix.file)
 
 df = read.table(file = matrix.file, header = TRUE, check.names = F)
@@ -62,7 +62,6 @@ p2 = round(fiz_pcoa$CA$eig[2]/sum(fiz_pcoa$CA$eig)*100, digits = 2)
 xlabel = paste0("PCoA1 (", p1, "%)")
 ylabel = paste0("PCoA2 (", p2, "%)")
 
-# PCoA
 pdf(file.path(out.dir, "pcoa.pdf"), 7, 7)
 biplot(fiz_pcoa,
        display = "sites",
@@ -87,17 +86,19 @@ counts = na.omit(melt(as.matrix(tri.df)))
 colnames(counts) = c("s1", "s2", "value")
 
 hm = ggplot(counts, aes(s1, s2)) +
-  ggtitle('Heatmap') +
+  ggtitle('Shared Reads (Normalized)') +
   theme_bw() +
   xlab('Sample1') +
   ylab('Sample2') +
   geom_tile(aes(fill = value), color='white') +
   scale_fill_gradient(low = 'white', high = 'darkblue', space = 'Lab') +
-  theme(axis.text.x=element_text(angle=90),
-        axis.ticks=element_blank(),
-        axis.line=element_blank(),
-        panel.border=element_blank(),
-        panel.grid.major=element_line(color='#eeeeee'))
+  theme(axis.text.x = element_text(angle=45, hjust = 1),
+        axis.ticks = element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.line = element_blank(),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank())
 
 ggsave(file = file.path(out.dir, "heatmap.png"), width = 5, height = 5, plot=hm)
 
