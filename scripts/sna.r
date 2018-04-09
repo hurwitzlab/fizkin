@@ -17,15 +17,15 @@ source(file.path(source_dir, "gbme.r"))
 
 option_list = list(
   make_option(
-    c("-f", "--file"),
+    c("-m", "--matrix"),
     default = "",
     type = "character",
-    help = "matrix",
+    help = "Similarity matrix",
     metavar = "character"
   ),
   make_option(
-    c("-o", "--outdir"),
-    default = file.path(getwd(), 'sna'),
+    c("-o", "--out_dir"),
+    default = "",
     type = "character",
     help = "outdir",
     metavar = "character"
@@ -34,89 +34,90 @@ option_list = list(
     c("-s", "--sna"),
     default = "sna-gbme.pdf",
     type = "character",
-    help = "sna filename",
+    help = "GBME SNA output filename",
     metavar = "character"
   ),
   make_option(
     c("-n", "--number"),
     default = as.integer(50000),
     type = "integer",
-    help = "number iterations",
+    help = "Number of GBME iterations",
     metavar = "integer"
   ),
   make_option(
     c("-a", "--alias"),
     default = "",
     type = "character",
-    help = "alias file",
+    help = "Sample name alias file",
     metavar = "alias"
   )
 );
 
 opt_parser   = OptionParser(option_list = option_list);
 opt          = parse_args(opt_parser);
-matrix_file  = opt$file  
-out_dir      = opt$outdir
+matrix.file  = opt$matrix  
+out.dir      = opt$out_dir
 n_iter       = opt$number
-alias_file   = opt$alias
-sna_filename = opt$sna
+alias.file   = opt$alias
+sna.filename = opt$sna
 
-Y = as.matrix(read.table(matrix_file, header = TRUE))
+Y = as.matrix(read.table(matrix.file, header = TRUE))
 
-if (!dir.exists(out_dir)) {
-  printf("Creating outdir '%s'\n", out_dir)
-  dir.create(out_dir)
-}
-
-if (nchar(matrix_file) == 0) {
+if (nchar(matrix.file) == 0) {
   stop("Missing matrix file argument")
 }
 
-setwd(out_dir)
+if (!file.exists(matrix.file)) {
+  stop(paste("Invalid --matrix", matrix.file))
+}
 
-GBME_OUT = file.path(out_dir, "gbme.out")
+if (nchar(out.dir) == 0) {
+  out.dir = dirname(matrix.file)
+}
 
-if (file.exists(GBME_OUT)) {
-  printf("Will use existing GMBE out '%s'\n", GBME_OUT)
-} else {
-  # Look for the "*.meta" files 
-  meta_dir = file.path(out_dir, "meta")
+if (!dir.exists(out.dir)) {
+  printf("Creating outdir '%s'\n", out.dir)
+  dir.create(out.dir)
+}
 
-  Xss = NULL
-  if (dir.exists(meta_dir)) {
-    meta_files = list.files(path = meta_dir, pattern = "*.meta$")
-    print(meta_files)
-    k = length(meta_files)
+GBME_OUT = file.path(out.dir, "gbme.out")
 
-    printf("Found %s file%s in meta dir '%s'\n", k, 
-      if (k == 1) { '' } else {'s'}, meta_dir)
+# Look for the "*.meta" files 
+meta_dir = file.path(out.dir, "meta")
 
-    if (k > 0) {
-      n = length(readLines(file.path(meta_dir, meta_files[1]))) - 1
-      Xss = array(NA, dim = c(n,n,k))
-
-      for (i in 1:k) {
-        file = file.path(meta_dir, meta_files[i])
-        Xss[,,i] = as.matrix(read.table(file, header = TRUE))
-      }
+Xss = NULL
+if (dir.exists(meta_dir)) {
+  meta_files = list.files(path = meta_dir, pattern = "*.meta$")
+  print(meta_files)
+  k = length(meta_files)
+  
+  printf("Found %s file%s in meta dir '%s'\n", k, 
+         if (k == 1) { '' } else {'s'}, meta_dir)
+  
+  if (k > 0) {
+    n = length(readLines(file.path(meta_dir, meta_files[1]))) - 1
+    Xss = array(NA, dim = c(n,n,k))
+    
+    for (i in 1:k) {
+      file = file.path(meta_dir, meta_files[i])
+      Xss[,,i] = as.matrix(read.table(file, header = TRUE))
     }
-    print(Xss)
   }
+  print(Xss)
+}
 
-  printf("Reading %s matrix\n", matrix_file)
-  Y = as.matrix(read.table(matrix_file, header = TRUE))
-  #print(Y)
-  n = nrow(Y)
-  args = c(Xss, fam = "gaussian", k = 2, direct = F, NS = n_iter, odens = 10, ofilename = GBME_OUT)
+printf("Reading %s matrix\n", matrix.file)
+Y = as.matrix(read.table(matrix.file, header = TRUE))
+#print(Y)
+n = nrow(Y)
+args = c(Xss, fam = "gaussian", k = 2, direct = F, NS = n_iter, odens = 10, ofilename = GBME_OUT)
 
-  printf("Running GBME with %s scans\n", n_iter)
+printf("Running GBME with %s scans\n", n_iter)
 
-  if (is.null(Xss)) {
-    gbme(Y = Y, fam = "gaussian", k = 2, direct = F, NS = n_iter, odens = 10, ofilename = GBME_OUT)
-  }
-  else {
-    gbme(Y = Y, Xss, fam = "gaussian", k = 2, direct = F, NS = n_iter, odens = 10, ofilename = GBME_OUT)
-  }
+if (is.null(Xss)) {
+  gbme(Y = Y, fam = "gaussian", k = 2, direct = F, NS = n_iter, odens = 10, ofilename = GBME_OUT)
+} else {
+  gbme(Y = Y, Xss, fam = "gaussian", k = 2, direct = F, NS = n_iter, odens = 10, ofilename = GBME_OUT)
 }
 
 if (!file.exists(GBME_OUT)) {
@@ -136,7 +137,7 @@ print(xtable(table1), type = "latex", file = "table1.tex")
 # examine marginal mixing
 #
 par(mfrow = c(3,4))
-pdf(file.path(out_dir, "marginal-mixing.pdf"), width = 6, height = 6)
+pdf(file.path(out.dir, "marginal-mixing.pdf"), width = 6, height = 6)
 for (i in 3:dim(OUT)[2]) {
   plot(OUT[,i],type = "l")
 }
@@ -151,14 +152,16 @@ PS <- OUT[OUT$scan > round(max(OUT$scan) / 2),-(1:3)]
 # gives mean, std dev, and .025,.5,.975 quantiles
 #
 M.SD.Q <-
-  rbind(apply(PS,2,mean),apply(PS,2,sd),apply(PS,2,quantile,probs = c(.025,.5,.975)))
+  rbind(apply(PS,2,mean),
+        apply(PS,2,sd),
+        apply(PS,2,quantile,probs = c(.025, .5, .975)))
 
 print(M.SD.Q)
 
 #
 # plots of posterior densities
 #
-pdf(file.path(out_dir, "posterior-densities.pdf"), width = 6, height = 6)
+pdf(file.path(out.dir, "posterior-densities.pdf"), width = 6, height = 6)
 par(mfrow = c(3,4))
 for (i in 1:dim(PS)[2]) {
   plot(density(PS[,i]),main = colnames(PS)[i])
@@ -181,7 +184,7 @@ for (i in 1:nss) {
   PZ[,,i] <- as.matrix(Z[((i - 1) * n + 1):(i * n) ,])
 }
 
-PZ <- PZ[,,-(1:round(nss / 2))]     #drop first half for burn in
+PZ <- PZ[,,-(1:round(nss / 2))] #drop first half for burn in
 
 #
 # find posterior mean of Z %*% t(Z)
@@ -196,7 +199,7 @@ ZTZ <- ZTZ / dim(PZ)[3]
 # a configuration that approximates posterior mean of ZTZ
 #
 tmp <- eigen(ZTZ)
-Z.pm <- tmp$vec[,1:k] %*% sqrt(diag(tmp$val[1:k]))
+Z.pm <- tmp$vec[, 1:k] %*% sqrt(diag(tmp$val[1:k]))
 
 #now transform each sample Z to a common orientation
 for (i in 1:dim(PZ)[3]) {
@@ -209,7 +212,7 @@ for (i in 1:dim(PZ)[3]) {
 #
 k <- 2
 if (k == 2) {
-  r <- atan2(Z.pm[,2],Z.pm[,1])
+  r <- atan2(Z.pm[,2], Z.pm[,1])
   r <- r + abs(min(r))
   r <- r / max(r)
   g <- 1 - r
@@ -217,22 +220,31 @@ if (k == 2) {
   b <- b / max(b)
   
   par(mfrow = c(1,1))
-  pdf(file.path(out_dir, sna_filename), width = 6, height = 6)
+  pdf(file.path(out.dir, sna.filename), width = 6, height = 6)
   plot(
-    Z.pm[,1],Z.pm[,2],xlab = "",ylab = "",type = "n",xlim = range(PZ[,1,]),
+    Z.pm[,1],
+    Z.pm[,2],
+    xlab = "",
+    ylab = "",
+    type = "n",
+    xlim = range(PZ[,1,]),
     ylim = range(PZ[,2,])
   )
+  
   abline(h = 0,lty = 2);abline(v = 0,lty = 2)
   
   for (i in 1:n) {
-    points(PZ[i,1,],PZ[i,2,],pch = 46,col = rgb(r[i],g[i],b[i]))
+    points(PZ[i,1,], 
+           PZ[i,2,], 
+           pch = 46, 
+           col = rgb(r[i], g[i], b[i]))
   }
   
   # add labels here
   labels = rownames(Y)
-  if (length(alias_file) > 0 & file.exists(alias_file)) {
-    printf("Using alias file '%s'\n", alias_file)
-    aliases = read.table(alias_file, header=T, as.is=T)
+  if (length(alias.file) > 0 & file.exists(alias.file)) {
+    printf("Using alias file '%s'\n", alias.file)
+    aliases = read.table(alias.file, header=T, as.is=T)
     for (i in 1:length(labels)) {
       label = labels[i]
       alias = aliases[aliases$name == label, "alias"]
@@ -247,21 +259,4 @@ if (k == 2) {
   dev.off()
 }
 
-# dendrogram
-dist = read.table(matrix_file)
-png(file.path(out_dir, 'dendrogram.png'), width=max(300, ncol(dist) * 20))
-hc = hclust(as.dist(as.matrix(dist)))
-plot(hc, xlab="Samples", main="Distances")
-dev.off()
-
-# heatmap
-png(file.path(out_dir, 'heatmap.png'))
-heatmap(as.matrix(dist))
-dev.off()
-
-# vegan tree
-png(file.path(out_dir, 'vegan-tree.png'))
-tree = spantree(as.dist(as.matrix(dist)))
-plot(tree, type="t")
-
-printf("Done, see output dir '%s'\n", out_dir)
+printf("Done, see output dir '%s'\n", out.dir)
