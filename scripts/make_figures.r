@@ -6,6 +6,7 @@ suppressMessages(library("ggplot2"))
 suppressMessages(library("vegan"))
 suppressMessages(library("R.utils"))
 suppressMessages(library("reshape2"))
+suppressMessages(library("ape"))
 
 # set arguments
 option_list = list (
@@ -44,18 +45,35 @@ if (!dir.exists(out.dir)) {
   dir.create(out.dir)
 }
 
-#matrix.file = "~/work/fizkin-paper/fizkin/ecoli_flex/figures/matrix_norm.tab"
-#out.dir = dirname(matrix.file)
-
 df = read.table(file = matrix.file, header = TRUE, check.names = F)
 
+#
 # Dendrogram
+#
 dist.matrix = as.dist(1 - df)
 fit = hclust(dist.matrix, method = "ward.D2") 
 dg = ggdendro::ggdendrogram(fit, rotate=T) + ggtitle("Dendrogram")
-ggsave(file = file.path(out.dir, "dendrogram.png"), width = 5, height = 5, plot = dg)
+img.height = 5
+num.samples = nrow(df)
 
+if (num.samples > 25) {
+  img.height = num.samples * .25
+}
+
+ggsave(file = file.path(out.dir, "dendrogram.png"), 
+       limitsize = FALSE, width = 5, height = img.height, plot = dg)
+
+# 
+# Write Newick, fan dendrogram
+#
+write.tree(phy = as.phylo(fit), file = file.path(out.dir, "tree.newick"))
+png(filename = file.path(out.dir, "dendrogram_fan.png"))
+plot(as.phylo(fit), type = "fan")
+invisible(dev.off())
+
+#
 # PCOA plot
+#
 fiz_pcoa = rda(df)
 p1 = round(fiz_pcoa$CA$eig[1]/sum(fiz_pcoa$CA$eig)*100, digits = 2)
 p2 = round(fiz_pcoa$CA$eig[2]/sum(fiz_pcoa$CA$eig)*100, digits = 2)
