@@ -262,7 +262,26 @@
             "details": {
                 "description": "",
                 "label": "Min. num k-mers for mode",
-                "argument": "-K",
+                "argument": "-K ",
+                "repeatArgument": false,
+                "showArgument": true
+            }
+        },
+        {
+            "id": "KEEP_READS",
+            "value": {
+                "default": false,
+                "type": "flag",
+                "order": 8,
+                "validator": "",
+                "required": false,
+                "visible": true,
+                "enquote": false
+            },
+            "details": {
+                "description": "",
+                "label": "Retain common reads",
+                "argument": "-r ",
                 "repeatArgument": false,
                 "showArgument": true
             }

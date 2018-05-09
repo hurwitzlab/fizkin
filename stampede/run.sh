@@ -20,6 +20,7 @@ IN_DIR=""
 IMG="/work/05066/imicrobe/singularity/fizkin.img"
 SINGULARITY_EXEC="singularity exec $IMG"
 JELLYFISH="$SINGULARITY_EXEC jellyfish"
+KEEP_READS=0
 KMER_SIZE="20"
 MAX_SEQS=500000
 MIN_MODE=1
@@ -64,6 +65,7 @@ function HELP() {
     echo " -M MIN_MODE ($MIN_MODE)"
     echo " -n NUM_SCANS ($NUM_SCANS)"
     echo " -o OUT_DIR ($OUT_DIR)"
+    echo " -r KEEP_READS ($KEEP_READS)"
     echo " -s HASH_SIZE ($HASH_SIZE)"
     echo " -t THREADS ($THREADS)"
     echo " -x MAX_SEQS ($MAX_SEQS)"
@@ -72,7 +74,7 @@ function HELP() {
 
 [[ $# -eq 0 ]] && HELP
 
-while getopts :a:d:e:i:k:K:m:M:n:o:q:s:t:x:h OPT; do
+while getopts :a:d:e:i:k:K:m:M:n:o:q:r:s:t:x:h OPT; do
     case $OPT in
       a)
           ALIAS_FILE="$OPTARG"
@@ -112,6 +114,9 @@ while getopts :a:d:e:i:k:K:m:M:n:o:q:s:t:x:h OPT; do
           ;;
       q)
           QUERY="$QUERY $OPTARG"
+          ;;
+      r)
+          KEEP_READS=1
           ;;
       s)
           HASH_SIZE="$OPTARG"
@@ -164,8 +169,8 @@ if [[ $MIN_MODE -lt 0 ]]; then
     exit 1
 fi
 
-if [[ $MIN_NUM_KMERS_FOR_MODE -lt 1 ]]; then
-    echo "MIN_NUM_KMERS_FOR_MODE \"$MIN_NUM_KMERS_FOR_MODE\" must be greater or equal to one"
+if [[ $PCT_KMER_READ_COVERAGE -lt 1 ]]; then
+    echo "PCT_KMER_READ_COVERAGE \"$PCT_KMER_READ_COVERAGE\" must be greater or equal to one"
     exit 1
 fi
 
@@ -177,11 +182,34 @@ fi
 
 [[ ! -d "$OUT_DIR" ]] && mkdir -p "$OUT_DIR"
 
+#
+# 0. Find the lowest number of input reads
+#
+echo "$SEP"
+echo "Counting input reads"
+COUNTS=$(mktemp)
+while read -r FILE; do
+    grep '^>' "$FILE" | wc -l >> "$COUNTS"
+done < "$INPUT_FILES"
+
+cat "$COUNTS"
+LOWEST_READ_COUNT=$(sort -n "$COUNTS" | head -n 1)
+echo "LOWEST_READ_COUNT \"$LOWEST_READ_COUNT\""
+
+if [[ $LOWEST_READ_COUNT -lt 1 ]]; then
+    echo "LOWEST_READ_COUNT should be > 0"
+    exit 1
+fi
+
 # --------------------------------------------------
 #
 # 1. Subset files
 #
 if [[ $MAX_SEQS -gt 0 ]]; then
+    if [[ $MAX_SEQS -gt $LOWEST_READ_COUNT ]]; then
+        MAX_SEQS=$LOWEST_READ_COUNT
+    fi
+
     echo "$SEP"
     echo "Will subset NUM_FILES \"$NUM_FILES\" to MAX_SEQS \"$MAX_SEQS\""
 
@@ -374,6 +402,11 @@ SNA_DIR="$OUT_DIR/sna"
 
 $SINGULARITY_EXEC make_matrix.py -m "$MODE_DIR" -o "$SNA_DIR"
 
+FIGS_DIR="$OUT_DIR/figures"
+[[ ! -d "$FIGS_DIR" ]] && mkdir -p "$FIGS_DIR"
+
+$SINGULARITY_EXEC make_matrix.r -m "$MODE_DIR" -o "$FIGS_DIR" -n "$MAX_SEQS"
+
 MATRIX_RAW="$SNA_DIR/matrix_raw.txt"
 if [[ ! -f "$MATRIX_RAW" ]]; then
     echo "Failed to create MATRIX_RAW \"$MATRIX_RAW\""
@@ -436,26 +469,31 @@ echo "Making figures"
 $SINGULARITY_EXEC make_figures.r -f "$MATRIX_NORM" -o "$SNA_DIR/figures"
 
 echo "$SEP"
-echo "Compressing query dir"
-GZIP_PARAM="$$.gzip.param"
-find "$QUERY_DIR" -type f -exec echo {} \; > "$GZIP_PARAM"
-NJOBS=$(lc "$GZIP_PARAM")
-if [[ $NJOBS -lt 1 ]]; then
-    echo "No subset launcher jobs to run!"
-else
-    echo "Starting NJOBS \"$NJOBS\" $(date)"
-    LAUNCHER_JOB_FILE="$GZIP_PARAM"
-    LAUNCHER_PPN=
-    if [[ $LAUNCHER_PPN -gt 16 ]]; then
-        LAUNCHER_PPN=16
+if [[ $KEEP_READS -gt 0 ]]; then
+    echo "Compressing QUERY_DIR \"$QUERY_DIR\""
+    GZIP_PARAM="$$.gzip.param"
+    find "$QUERY_DIR" -type f -exec echo gzip {} \; > "$GZIP_PARAM"
+    NJOBS=$(lc "$GZIP_PARAM")
+    if [[ $NJOBS -lt 1 ]]; then
+        echo "No subset launcher jobs to run!"
+    else
+        echo "Starting NJOBS \"$NJOBS\" $(date)"
+        LAUNCHER_JOB_FILE="$GZIP_PARAM"
+        LAUNCHER_PPN=
+        if [[ $LAUNCHER_PPN -gt 16 ]]; then
+            LAUNCHER_PPN=16
+        fi
+        export LAUNCHER_JOB_FILE
+        export LAUNCHER_PPN
+        $PARAMRUN
+        echo "Ended LAUNCHER $(date)"
+        unset LAUNCHER_PPN
     fi
-    export LAUNCHER_JOB_FILE
-    export LAUNCHER_PPN
-    $PARAMRUN
-    echo "Ended LAUNCHER $(date)"
-    unset LAUNCHER_PPN
+    rm "$GZIP_PARAM"
+else
+    echo "Removing QUERY_DIR \"$QUERY_DIR\""
+    rm -rf "$QUERY_DIR"
 fi
-rm "$GZIP_PARAM"
 
 echo "$SEP"
 echo "Finished $(date)"
