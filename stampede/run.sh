@@ -17,8 +17,7 @@ EUC_DIST_PERCENT=0.1
 DISTANCE_ALGORITHM="euclidean"
 HASH_SIZE="100M"
 IN_DIR=""
-#IMG="fizkin-2.2.6.img"
-IMG="fizkin.img"
+IMG="/work/05066/imicrobe/singularity/fizkin.img"
 SINGULARITY_EXEC="singularity exec $IMG"
 JELLYFISH="$SINGULARITY_EXEC jellyfish"
 KMER_SIZE="20"
@@ -424,13 +423,17 @@ $SINGULARITY_EXEC sna.r -f "$MATRIX_NORM" -o "$SNA_DIR" -s "sna-gbme.pdf" -n $NU
 GBME_OUT="$SNA_DIR/sna-gbme.pdf"
 [[ ! -f "$GBME_OUT" ]] && echo "Failed to create GBME_OUT \"$GBME_OUT\""
 
-echo "$SEP"
-echo "Running PCOA"
-$SINGULARITY_EXEC make_pcoa.r -f "$MATRIX_NORM" -d "$SNA_DIR"
+#echo "$SEP"
+#echo "Running PCOA"
+#$SINGULARITY_EXEC make_pcoa.r -f "$MATRIX_NORM" -d "$SNA_DIR"
+#
+#echo "$SEP"
+#echo "Make Dendrograms"
+#$SINGULARITY_EXEC make_dendrograms.r -m "$MATRIX_NORM" -o "$SNA_DIR/figures"
 
 echo "$SEP"
-echo "Make Dendrograms"
-$SINGULARITY_EXEC make_dendrograms.r -m "$MATRIX_NORM" -o "$SNA_DIR/figures"
+echo "Making figures"
+$SINGULARITY_EXEC make_figures.r -f "$MATRIX_NORM" -o "$SNA_DIR/figures"
 
 echo "$SEP"
 echo "Compressing query dir"
