@@ -17,7 +17,7 @@ EUC_DIST_PERCENT=0.1
 DISTANCE_ALGORITHM="euclidean"
 HASH_SIZE="100M"
 IN_DIR=""
-IMG="/work/05066/imicrobe/singularity/fizkin.img"
+IMG="/work/05066/imicrobe/singularity/fizkin-0.0.4.img"
 SINGULARITY_EXEC="singularity exec $IMG"
 JELLYFISH="$SINGULARITY_EXEC jellyfish"
 KEEP_READS=0
@@ -45,7 +45,7 @@ function lc() {
 }
 
 function HELP() {
-    printf "Usage:\n  %s -i IN_DIR \n\n" "$(basename "$0")"
+    printf "Usage:\\n  %s -i IN_DIR \\n\\n" "$(basename "$0")"
   
     echo "Required arguments:"
     echo " -i IN_DIR (input directory)"
@@ -74,7 +74,7 @@ function HELP() {
 
 [[ $# -eq 0 ]] && HELP
 
-while getopts :a:d:e:i:k:K:m:M:n:o:q:r:s:t:x:h OPT; do
+while getopts :a:d:D:e:i:k:K:m:M:n:o:q:r:s:t:x:h OPT; do
     case $OPT in
       a)
           ALIAS_FILE="$OPTARG"
@@ -189,7 +189,7 @@ echo "$SEP"
 echo "Counting input reads"
 COUNTS=$(mktemp)
 while read -r FILE; do
-    grep '^>' "$FILE" | wc -l >> "$COUNTS"
+    grep -c '^>' "$FILE" >> "$COUNTS"
 done < "$INPUT_FILES"
 
 cat "$COUNTS"
@@ -219,9 +219,9 @@ if [[ $MAX_SEQS -gt 0 ]]; then
     SUBSET_PARAM="$$.subset.param"
     i=0
     while read -r FILE; do
-        let i++
+        i=$((i+1))
         BASENAME=$(basename "$FILE")
-        printf "%3d: %s\n" $i "$BASENAME"
+        printf "%3d: %s\\n" $i "$BASENAME"
 
         SUBSET_FILE="$SUBSET_DIR/$BASENAME"
         if [[ -s "$SUBSET_FILE" ]]; then
@@ -277,9 +277,9 @@ COUNT_PARAM="$$.count.param"
 
 i=0
 while read -r FILE; do
-    let i++
+    i=$((i+1))
     BASENAME=$(basename "$FILE")
-    printf "%3d: %s\n" $i "$BASENAME"
+    printf "%3d: %s\\n" $i "$BASENAME"
     
     JF_FILE="$JF_DIR/$BASENAME"
     if [[ -s "$JF_FILE" ]]; then
@@ -331,9 +331,9 @@ while read -r INDEX; do
     [[ ! -d "$QRY_DIR" ]] && mkdir -p "$QRY_DIR"
 
     while read -r FASTA; do
-        let i++
+        i=$((i+1))
         FASTA_BASENAME=$(basename "$FASTA")
-        printf "%3d: %s -> %s\n" $i "$INDEX_BASENAME" "$FASTA_BASENAME"
+        printf "%3d: %s -> %s\\n" $i "$INDEX_BASENAME" "$FASTA_BASENAME"
         QUERY_OUT="$QRY_DIR/$FASTA_BASENAME"
         if [[ -s "$QUERY_OUT" ]]; then
             echo "\"$QUERY_OUT\" exists, skipping"
@@ -385,7 +385,7 @@ while read -r QRY_FILE; do
 
     MODE_FILE="$MODE_OUT_DIR/$BASENAME"
     if [[ ! -f "$MODE_FILE" ]]; then
-        grep '^>' "$QRY_FILE" | wc -l > "$MODE_FILE"
+        grep -c '^>' "$QRY_FILE" > "$MODE_FILE"
     fi
 done < "$QUERIES"
 rm "$QUERIES"
@@ -466,7 +466,7 @@ GBME_OUT="$SNA_DIR/sna-gbme.pdf"
 
 echo "$SEP"
 echo "Making figures"
-$SINGULARITY_EXEC make_figures.r -f "$MATRIX_NORM" -o "$SNA_DIR/figures"
+$SINGULARITY_EXEC make_figures.r -m "$MATRIX_NORM" -o "$FIGS_DIR"
 
 echo "$SEP"
 if [[ $KEEP_READS -gt 0 ]]; then

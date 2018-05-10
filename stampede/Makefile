@@ -60,3 +60,6 @@ mock500:
 
 mock1M:
 	sbatch -J fizmck ./run.sh -q $(WORK)/data/mock_communities/test -o $(WORK)/data/mock_communities/fizkin-1M -x 1000000
+
+icu:
+	sbatch -J fizicu ./run.sh -q $(SCRATCH)/icu/fasta -o $(SCRATCH)/icu/fizkin
