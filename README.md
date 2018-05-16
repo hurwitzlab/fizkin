@@ -1,6 +1,6 @@
 # Fizkin
 
-K-mer analysis.
+Clustering via k-mer analysis.
 
 * "scripts/workers" - driver/worker scripts
 * "bin" - necessary compiled tools, e.g., "faSplit"
