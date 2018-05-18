@@ -8,7 +8,7 @@
 #SBATCH -A iPlant-Collabs
 
 module load tacc-singularity
-module load launcher
+module load launcher/3.2
 
 set -u
 
@@ -23,6 +23,7 @@ JELLYFISH="$SINGULARITY_EXEC jellyfish"
 KEEP_READS=0
 KMER_SIZE="20"
 MAX_SEQS=500000
+MIN_SEQS=10000
 MIN_MODE=1
 PCT_KMER_READ_COVERAGE=30
 METADATA_FILE=""
@@ -64,6 +65,7 @@ function HELP() {
     echo " -m METADATA_FILE"
     echo " -M MIN_MODE ($MIN_MODE)"
     echo " -n NUM_SCANS ($NUM_SCANS)"
+    echo " -N MIN_SEQS ($MIN_SEQS)"
     echo " -o OUT_DIR ($OUT_DIR)"
     echo " -r KEEP_READS ($KEEP_READS)"
     echo " -s HASH_SIZE ($HASH_SIZE)"
@@ -74,7 +76,7 @@ function HELP() {
 
 [[ $# -eq 0 ]] && HELP
 
-while getopts :a:d:D:e:i:k:K:m:M:n:o:q:r:s:t:x:h OPT; do
+while getopts :a:d:D:e:i:k:K:m:M:n:N:o:q:r:s:t:x:h OPT; do
     case $OPT in
       a)
           ALIAS_FILE="$OPTARG"
@@ -108,6 +110,9 @@ while getopts :a:d:D:e:i:k:K:m:M:n:o:q:r:s:t:x:h OPT; do
           ;;
       n)
           NUM_SCANS="$OPTARG"
+          ;;
+      N)
+          MIN_SEQS="$OPTARG"
           ;;
       o)
           OUT_DIR="$OPTARG"
@@ -182,30 +187,62 @@ fi
 
 [[ ! -d "$OUT_DIR" ]] && mkdir -p "$OUT_DIR"
 
-#
-# 0. Find the lowest number of input reads
-#
-echo "$SEP"
-echo "Counting input reads"
-COUNTS=$(mktemp)
-while read -r FILE; do
-    grep -c '^>' "$FILE" >> "$COUNTS"
-done < "$INPUT_FILES"
-
-cat "$COUNTS"
-LOWEST_READ_COUNT=$(sort -n "$COUNTS" | head -n 1)
-echo "LOWEST_READ_COUNT \"$LOWEST_READ_COUNT\""
-
-if [[ $LOWEST_READ_COUNT -lt 1 ]]; then
-    echo "LOWEST_READ_COUNT should be > 0"
-    exit 1
-fi
 
 # --------------------------------------------------
 #
 # 1. Subset files
 #
 if [[ $MAX_SEQS -gt 0 ]]; then
+    #
+    # Find the lowest number of input reads
+    #
+    echo "$SEP"
+    echo "Counting input reads"
+    COUNT_DIR="$OUT_DIR/counts"
+
+    if [[ ! -d "$COUNT_DIR" ]]; then
+        mkdir -p "$COUNT_DIR"
+    fi
+
+    COUNTS_PARAM="$$.count.param"
+    while read -r FILE; do
+        BASE=$(basename "$FILE")
+        COUNT_FILE="$COUNT_DIR/$BASE"
+        if [[ ! -f "$COUNT_FILE" ]]; then
+            echo "grep -c '^>' $FILE > ">> "$COUNTS_PARAM"
+        fi
+    done < "$INPUT_FILES"
+
+    NJOBS=$(lc "$COUNTS_PARAM")
+
+    if [[ $NJOBS -lt 1 ]]; then
+        echo "No counts launcher jobs to run!"
+    else
+        echo "Starting NJOBS \"$NJOBS\" $(date)"
+        LAUNCHER_JOB_FILE="$COUNTS_PARAM"
+        if [[ $NJOBS -gt 32 ]]; then
+            LAUNCHER_PPN=32
+        else
+            LAUNCHER_PPN=$NJOBS
+        fi
+        export LAUNCHER_JOB_FILE
+        export LAUNCHER_PPN
+        $PARAMRUN
+        echo "Ended LAUNCHER $(date)"
+        unset LAUNCHER_PPN
+        rm "$COUNTS_PARAM"
+    fi
+
+    COUNTS=$(mktemp)
+    cat $COUNT_DIR/* > "$COUNTS"
+    LOWEST_READ_COUNT=$(sort -n "$COUNTS" | head -n 1)
+
+    if [[ $LOWEST_READ_COUNT -lt $MIN_SEQS ]]; then
+        LOWEST_READ_COUNT=$MIN_SEQS
+    fi
+
+    echo "LOWEST_READ_COUNT \"$LOWEST_READ_COUNT\""
+
     if [[ $MAX_SEQS -gt $LOWEST_READ_COUNT ]]; then
         MAX_SEQS=$LOWEST_READ_COUNT
     fi
@@ -250,7 +287,7 @@ if [[ $MAX_SEQS -gt 0 ]]; then
     SUBSET_FILES=$(mktemp)
     find "$SUBSET_DIR" -type f -size +0c > "$SUBSET_FILES"
 else
-    echo "No MAX_SEQS, so using INPUT_FILES"
+    echo "No MAX_SEQS, so using raw INPUT_FILES"
     SUBSET_FILES="$INPUT_FILES"
 fi
 
