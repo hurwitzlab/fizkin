@@ -12,16 +12,24 @@ from Bio import SeqIO
 # --------------------------------------------------
 def get_args():
     """get args"""
-    parser = argparse.ArgumentParser(description='Split FASTA files')
+    parser = argparse.ArgumentParser(
+        description='Split FASTA files',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
     parser.add_argument('file', help='FASTQ/A input file', metavar='FILE')
+
     parser.add_argument('-n', '--num', help='Number of records per file',
                         type=int, metavar='NUM', default=500000)
+
     parser.add_argument('-o', '--out_dir', help='Output directory',
                         type=str, metavar='DIR', default='subset')
+
     parser.add_argument('-i', '--input_format', help='Input file format',
                         type=str, metavar='FMT', default='fasta')
+
     parser.add_argument('-t', '--output_format', help='Output file format',
                         type=str, metavar='FMT', default='fasta')
+
     return parser.parse_args()
 
 # --------------------------------------------------
