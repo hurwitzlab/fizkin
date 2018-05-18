@@ -10,16 +10,22 @@ suppressMessages(library("ape"))
 
 # set arguments
 option_list = list (
-  make_option(c("-m", "--matrix"), 
-              type = "character", 
+  make_option(c("-m", "--matrix"),
+              type = "character",
               default = "",
-              help = "Matrix file", 
+              help = "Matrix file",
               metavar="character"
   ),
-  make_option(c("-o", "--out_dir"), 
-              type = "character", 
+  make_option(c("-o", "--out_dir"),
+              type = "character",
               default = '',
               help = "Output directory (--file dir)"
+  ),
+  make_option(c("-s", "--sort"),
+              type = "logical",
+              default = FALSE,
+              action = "store_true",
+              help = "Sort columns/rows"
   )
 );
 
@@ -27,6 +33,7 @@ opt_parser  = OptionParser(option_list = option_list)
 opt         = parse_args(opt_parser)
 out.dir     = opt$out_dir
 matrix.file = opt$matrix
+sort.names  = opt$sort
 
 # check arguments
 if (nchar(matrix.file) == 0) {
@@ -47,11 +54,15 @@ if (!dir.exists(out.dir)) {
 
 df = read.table(file = matrix.file, header = TRUE, check.names = F)
 
+if (sort.names) {
+  df = df[order(colnames(df)), order(colnames(df))]
+}
+
 #
 # Dendrogram
 #
 dist.matrix = as.dist(1 - df)
-fit = hclust(dist.matrix, method = "ward.D2") 
+fit = hclust(dist.matrix, method = "ward.D2")
 dg = ggdendro::ggdendrogram(fit, rotate=T) + ggtitle("Dendrogram")
 img.height = 5
 num.samples = nrow(df)
@@ -60,10 +71,10 @@ if (num.samples > 25) {
   img.height = num.samples * .25
 }
 
-ggsave(file = file.path(out.dir, "dendrogram.png"), 
+ggsave(file = file.path(out.dir, "dendrogram.png"),
        limitsize = FALSE, width = 5, height = img.height, plot = dg)
 
-# 
+#
 # Write Newick, fan dendrogram
 #
 write.tree(phy = as.phylo(fit), file = file.path(out.dir, "tree.newick"))
@@ -109,7 +120,10 @@ hm = ggplot(counts, aes(s1, s2)) +
   xlab('Sample1') +
   ylab('Sample2') +
   geom_tile(aes(fill = value), color='white') +
-  scale_fill_gradient(low = 'white', high = 'darkblue', space = 'Lab') +
+  scale_fill_gradient(low = 'white',
+                      high = 'darkblue',
+                      space = 'Lab',
+                      limits = c(0, 1)) +
   theme(axis.text.x = element_text(angle=45, hjust = 1),
         axis.ticks = element_blank(),
         axis.title.x = element_blank(),
