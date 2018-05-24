@@ -50,7 +50,7 @@ sap_pyo:
 	sbatch -J sap_pyo ./run.sh -x 300000 -q $(WORK)/data/bugs/sap_pyo/fasta -o $(WORK)/data/bugs/sap_pyo/fizkin-out-300
 
 myriam:
-	sbatch -J myriam ./run.sh -q $(WORK)/myriam/lake_a/corrected -o $(WORK)/myriam/lake_a/fizkin #-m $(SCRATCH)/myriam/DiversityLakeA/samplesmetadata.tab 
+	sbatch -J myriam ./run.sh -r -q $(WORK)/myriam/lake_a/corrected -o $(WORK)/myriam/lake_a/fizkin #-m $(SCRATCH)/myriam/DiversityLakeA/samplesmetadata.tab 
 
 mock250:
 	sbatch -J fizmck ./run.sh -q $(WORK)/data/mock_communities/test -o $(WORK)/data/mock_communities/fizkin-250 -x 250000
@@ -63,3 +63,6 @@ mock1M:
 
 icu:
 	sbatch -J fizicu ./run.sh -q $(SCRATCH)/icu/fasta -o $(SCRATCH)/icu/fizkin
+
+grice:
+	sbatch -J grice ./run.sh -q $(SCRATCH)/grice-skin/fasta -o $(SCRATCH)/grice-skin/fizkin

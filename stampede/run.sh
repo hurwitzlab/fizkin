@@ -8,7 +8,7 @@
 #SBATCH -A iPlant-Collabs
 
 module load tacc-singularity
-module load launcher
+module load launcher/3.2
 
 set -u
 
@@ -16,6 +16,7 @@ ALIAS_FILE=""
 EUC_DIST_PERCENT=0.1
 DISTANCE_ALGORITHM="euclidean"
 HASH_SIZE="100M"
+GZIP_READS=0
 IN_DIR=""
 IMG="/work/05066/imicrobe/singularity/fizkin-0.0.4.img"
 SINGULARITY_EXEC="singularity exec $IMG"
@@ -23,6 +24,7 @@ JELLYFISH="$SINGULARITY_EXEC jellyfish"
 KEEP_READS=0
 KMER_SIZE="20"
 MAX_SEQS=500000
+MIN_SEQS=10000
 MIN_MODE=1
 PCT_KMER_READ_COVERAGE=30
 METADATA_FILE=""
@@ -64,17 +66,19 @@ function HELP() {
     echo " -m METADATA_FILE"
     echo " -M MIN_MODE ($MIN_MODE)"
     echo " -n NUM_SCANS ($NUM_SCANS)"
+    echo " -N MIN_SEQS ($MIN_SEQS)"
     echo " -o OUT_DIR ($OUT_DIR)"
     echo " -r KEEP_READS ($KEEP_READS)"
     echo " -s HASH_SIZE ($HASH_SIZE)"
     echo " -t THREADS ($THREADS)"
     echo " -x MAX_SEQS ($MAX_SEQS)"
+    echo " -z GZIP_READS ($GZIP_READS)"
     exit 0
 }
 
 [[ $# -eq 0 ]] && HELP
 
-while getopts :a:d:D:e:i:k:K:m:M:n:o:q:r:s:t:x:h OPT; do
+while getopts :a:d:D:e:i:k:K:m:M:n:N:o:q:s:t:x:hrz OPT; do
     case $OPT in
       a)
           ALIAS_FILE="$OPTARG"
@@ -109,6 +113,9 @@ while getopts :a:d:D:e:i:k:K:m:M:n:o:q:r:s:t:x:h OPT; do
       n)
           NUM_SCANS="$OPTARG"
           ;;
+      N)
+          MIN_SEQS="$OPTARG"
+          ;;
       o)
           OUT_DIR="$OPTARG"
           ;;
@@ -126,6 +133,9 @@ while getopts :a:d:D:e:i:k:K:m:M:n:o:q:r:s:t:x:h OPT; do
           ;;
       x)
           MAX_SEQS="$OPTARG"
+          ;;
+      z)
+          GZIP_READS=1
           ;;
       :)
           echo "Error: Option -$OPTARG requires an argument."
@@ -182,30 +192,61 @@ fi
 
 [[ ! -d "$OUT_DIR" ]] && mkdir -p "$OUT_DIR"
 
-#
-# 0. Find the lowest number of input reads
-#
-echo "$SEP"
-echo "Counting input reads"
-COUNTS=$(mktemp)
-while read -r FILE; do
-    grep -c '^>' "$FILE" >> "$COUNTS"
-done < "$INPUT_FILES"
-
-cat "$COUNTS"
-LOWEST_READ_COUNT=$(sort -n "$COUNTS" | head -n 1)
-echo "LOWEST_READ_COUNT \"$LOWEST_READ_COUNT\""
-
-if [[ $LOWEST_READ_COUNT -lt 1 ]]; then
-    echo "LOWEST_READ_COUNT should be > 0"
-    exit 1
-fi
 
 # --------------------------------------------------
 #
 # 1. Subset files
 #
 if [[ $MAX_SEQS -gt 0 ]]; then
+    #
+    # Find the lowest number of input reads
+    #
+    echo "$SEP"
+    echo "Counting input reads"
+    COUNT_DIR="$OUT_DIR/counts"
+
+    if [[ ! -d "$COUNT_DIR" ]]; then
+        mkdir -p "$COUNT_DIR"
+    fi
+
+    COUNTS_PARAM="$$.count.param"
+    while read -r FILE; do
+        BASE=$(basename "$FILE")
+        COUNT_FILE="$COUNT_DIR/$BASE"
+        if [[ ! -f "$COUNT_FILE" ]]; then
+            echo "grep -ce '^>' $FILE > $COUNT_FILE" >> "$COUNTS_PARAM"
+        fi
+    done < "$INPUT_FILES"
+
+    NJOBS=$(lc "$COUNTS_PARAM")
+
+    if [[ $NJOBS -lt 1 ]]; then
+        echo "No counts launcher jobs to run!"
+    else
+        echo "Starting NJOBS \"$NJOBS\" $(date)"
+        LAUNCHER_JOB_FILE="$COUNTS_PARAM"
+        LAUNCHER_PPN=$NJOBS
+        if [[ $LAUNCHER_PPN -gt 32 ]]; then
+            LAUNCHER_PPN=32
+        fi
+        export LAUNCHER_JOB_FILE
+        export LAUNCHER_PPN
+        $PARAMRUN
+        echo "Ended LAUNCHER $(date)"
+        unset LAUNCHER_PPN
+        rm "$COUNTS_PARAM"
+    fi
+
+    COUNTS=$(mktemp)
+    cat "$COUNT_DIR"/* > "$COUNTS"
+    LOWEST_READ_COUNT=$(sort -n "$COUNTS" | head -n 1)
+
+    if [[ $LOWEST_READ_COUNT -lt $MIN_SEQS ]]; then
+        LOWEST_READ_COUNT=$MIN_SEQS
+    fi
+
+    echo "LOWEST_READ_COUNT \"$LOWEST_READ_COUNT\""
+
     if [[ $MAX_SEQS -gt $LOWEST_READ_COUNT ]]; then
         MAX_SEQS=$LOWEST_READ_COUNT
     fi
@@ -250,7 +291,7 @@ if [[ $MAX_SEQS -gt 0 ]]; then
     SUBSET_FILES=$(mktemp)
     find "$SUBSET_DIR" -type f -size +0c > "$SUBSET_FILES"
 else
-    echo "No MAX_SEQS, so using INPUT_FILES"
+    echo "No MAX_SEQS, so using raw INPUT_FILES"
     SUBSET_FILES="$INPUT_FILES"
 fi
 
@@ -296,12 +337,16 @@ if [[ $NJOBS -lt 1 ]]; then
 else
     LAUNCHER_JOB_FILE="$COUNT_PARAM"
     LAUNCHER_PPN=$NJOBS
+    if [[ $LAUNCHER_PPN -gt 16 ]]; then
+        LAUNCHER_PPN=16
+    fi
     export LAUNCHER_JOB_FILE
     export LAUNCHER_PPN
     [[ $NJOBS -ge 16 ]] && export LAUNCHER_PPN=16
     echo "Starting NJOBS \"$NJOBS\" $(date)"
     $PARAMRUN
     echo "Ended LAUNCHER $(date)"
+    unset LAUNCHER_PPN
     rm "$COUNT_PARAM"
 fi
 
@@ -323,22 +368,32 @@ echo "Will process NUM_JF \"$NUM_JF\" files"
 
 QUERY_PARAM="$$.query.param"
 QUERY_CMD="$SINGULARITY_EXEC query_per_sequence $MIN_MODE $PCT_KMER_READ_COVERAGE"
-QUERY_DIR="$OUT_DIR/query"
+READS_KEPT_DIR="$OUT_DIR/reads_kept"
+READS_REJECTED_DIR="$OUT_DIR/reads_rejected"
+
 i=0
 while read -r INDEX; do
     INDEX_BASENAME=$(basename "$INDEX")
-    QRY_DIR="$QUERY_DIR/$INDEX_BASENAME"
-    [[ ! -d "$QRY_DIR" ]] && mkdir -p "$QRY_DIR"
+    KEEP_DIR="$READS_KEPT_DIR/$INDEX_BASENAME"
+    REJECT_DIR="$READS_REJECTED_DIR/$INDEX_BASENAME"
+
+    [[ ! -d "$KEEP_DIR"   ]] && mkdir -p "$KEEP_DIR"
+    [[ ! -d "$REJECT_DIR" ]] && mkdir -p "$REJECT_DIR"
 
     while read -r FASTA; do
         i=$((i+1))
         FASTA_BASENAME=$(basename "$FASTA")
+
         printf "%3d: %s -> %s\\n" $i "$INDEX_BASENAME" "$FASTA_BASENAME"
-        QUERY_OUT="$QRY_DIR/$FASTA_BASENAME"
-        if [[ -s "$QUERY_OUT" ]]; then
-            echo "\"$QUERY_OUT\" exists, skipping"
+
+        KEEP_OUT="$KEEP_DIR/$FASTA_BASENAME"
+        REJECT_OUT="$REJECT_DIR/$FASTA_BASENAME"
+
+        if [[ -s "$KEEP_OUT" ]]; then
+            echo "\"$KEEP_OUT\" exists, skipping"
         else
-            echo "$QUERY_CMD $INDEX $FASTA > $QUERY_OUT" >> "$QUERY_PARAM"
+            echo "$QUERY_CMD $INDEX $FASTA 1>$KEEP_OUT 2>$REJECT_OUT" \
+                >> "$QUERY_PARAM"
         fi
     done < "$SUBSET_FILES"
 done < "$JF_INDEXES"
@@ -350,6 +405,9 @@ if [[ $NJOBS -lt 1 ]]; then
 else
     LAUNCHER_JOB_FILE="$QUERY_PARAM"
     LAUNCHER_PPN=$NJOBS
+    if [[ $LAUNCHER_PPN -gt 16 ]]; then
+        LAUNCHER_PPN=16
+    fi
     export LAUNCHER_JOB_FILE
     export LAUNCHER_PPN
     echo "Starting NJOBS \"$NJOBS\" $(date)"
@@ -363,11 +421,11 @@ fi
 # 4. Count the number of reads for each comparison
 #
 QUERIES=$(mktemp)
-find "$QUERY_DIR" -type f > "$QUERIES"
+find "$READS_KEPT_DIR" -type f > "$QUERIES"
 NUM_QUERIES=$(lc "$QUERIES")
 
 if [[ $NUM_QUERIES -lt 1 ]]; then
-    echo "Found no files in QUERY_DIR \"$QUERY_DIR\""
+    echo "Found no files in READS_KEPT_DIR \"$READS_KEPT_DIR\""
     exit 1
 fi
 
@@ -385,7 +443,7 @@ while read -r QRY_FILE; do
 
     MODE_FILE="$MODE_OUT_DIR/$BASENAME"
     if [[ ! -f "$MODE_FILE" ]]; then
-        grep -c '^>' "$QRY_FILE" > "$MODE_FILE"
+        grep -ce '^>' "$QRY_FILE" > "$MODE_FILE"
     fi
 done < "$QUERIES"
 rm "$QUERIES"
@@ -400,20 +458,18 @@ echo "Summing reads into matrices"
 SNA_DIR="$OUT_DIR/sna"
 [[ ! -d "$SNA_DIR" ]] && mkdir -p "$SNA_DIR"
 
-$SINGULARITY_EXEC make_matrix.py -m "$MODE_DIR" -o "$SNA_DIR"
+#$SINGULARITY_EXEC make_matrix.py -m "$MODE_DIR" -o "$SNA_DIR"
+#MATRIX_RAW="$SNA_DIR/matrix_raw.txt"
+#if [[ ! -f "$MATRIX_RAW" ]]; then
+#    echo "Failed to create MATRIX_RAW \"$MATRIX_RAW\""
+#    exit 1
+#fi
 
 FIGS_DIR="$OUT_DIR/figures"
 [[ ! -d "$FIGS_DIR" ]] && mkdir -p "$FIGS_DIR"
-
 $SINGULARITY_EXEC make_matrix.r -m "$MODE_DIR" -o "$FIGS_DIR" -n "$MAX_SEQS"
 
-MATRIX_RAW="$SNA_DIR/matrix_raw.txt"
-if [[ ! -f "$MATRIX_RAW" ]]; then
-    echo "Failed to create MATRIX_RAW \"$MATRIX_RAW\""
-    exit 1
-fi
-
-MATRIX_NORM="$SNA_DIR/matrix_normalized.txt"
+MATRIX_NORM="$FIGS_DIR/matrix_normalized.txt"
 if [[ ! -f "$MATRIX_NORM" ]]; then
     echo "Failed to create MATRIX_NORM \"$MATRIX_NORM\""
     exit 1
@@ -451,7 +507,7 @@ ALIAS_FILE_ARG=""
 GBME_PREVIOUS="$SNA_DIR/gbme.out"
 [[ -f "$GBME_PREVIOUS" ]] && rm -f "$GBME_PREVIOUS"
 
-$SINGULARITY_EXEC sna.r -f "$MATRIX_NORM" -o "$SNA_DIR" -s "sna-gbme.pdf" -n $NUM_SCANS $ALIAS_FILE_ARG
+$SINGULARITY_EXEC sna.r -m "$MATRIX_NORM" -o "$SNA_DIR" -s "sna-gbme.pdf" -n $NUM_SCANS $ALIAS_FILE_ARG
 
 GBME_OUT="$SNA_DIR/sna-gbme.pdf"
 [[ ! -f "$GBME_OUT" ]] && echo "Failed to create GBME_OUT \"$GBME_OUT\""
@@ -469,31 +525,38 @@ echo "Making figures"
 $SINGULARITY_EXEC make_figures.r -m "$MATRIX_NORM" -o "$FIGS_DIR"
 
 echo "$SEP"
-if [[ $KEEP_READS -gt 0 ]]; then
-    echo "Compressing QUERY_DIR \"$QUERY_DIR\""
-    GZIP_PARAM="$$.gzip.param"
-    find "$QUERY_DIR" -type f -exec echo gzip {} \; > "$GZIP_PARAM"
-    NJOBS=$(lc "$GZIP_PARAM")
-    if [[ $NJOBS -lt 1 ]]; then
-        echo "No subset launcher jobs to run!"
-    else
-        echo "Starting NJOBS \"$NJOBS\" $(date)"
-        LAUNCHER_JOB_FILE="$GZIP_PARAM"
-        LAUNCHER_PPN=
-        if [[ $LAUNCHER_PPN -gt 16 ]]; then
-            LAUNCHER_PPN=16
+for READS_DIR in $READS_KEPT_DIR $READS_REJECTED_DIR; do
+    if [[ $KEEP_READS -gt 0 ]]; then
+        find "$READS_DIR" -type f -size 0 -delete
+        find "$READS_DIR" -type d -empty -delete
+
+        if [[ $GZIP_READS -gt 0 ]]; then
+            echo "Compressing READS_DIR \"$READS_DIR\""
+            GZIP_PARAM="$$.gzip.param"
+            find "$READS_DIR" -type f -size +0c -exec echo gzip {} \; > "$GZIP_PARAM"
+            NJOBS=$(lc "$GZIP_PARAM")
+            if [[ $NJOBS -lt 1 ]]; then
+                echo "No subset launcher jobs to run!"
+            else
+                echo "Starting NJOBS \"$NJOBS\" $(date)"
+                LAUNCHER_JOB_FILE="$GZIP_PARAM"
+                LAUNCHER_PPN=$NJOBS
+                if [[ $LAUNCHER_PPN -gt 16 ]]; then
+                    LAUNCHER_PPN=16
+                fi
+                export LAUNCHER_JOB_FILE
+                export LAUNCHER_PPN
+                $PARAMRUN
+                echo "Ended LAUNCHER $(date)"
+                unset LAUNCHER_PPN
+            fi
+            rm "$GZIP_PARAM"
         fi
-        export LAUNCHER_JOB_FILE
-        export LAUNCHER_PPN
-        $PARAMRUN
-        echo "Ended LAUNCHER $(date)"
-        unset LAUNCHER_PPN
+    else
+        echo "Removing READS_DIR \"$READS_DIR\""
+        rm -rf "$READS_DIR"
     fi
-    rm "$GZIP_PARAM"
-else
-    echo "Removing QUERY_DIR \"$QUERY_DIR\""
-    rm -rf "$QUERY_DIR"
-fi
+done
 
 echo "$SEP"
 echo "Finished $(date)"
