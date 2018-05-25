@@ -56,9 +56,6 @@ if (!dir.exists(out.dir)) {
   dir.create(out.dir)
 }
 
-# mode.dir = "~/work/dolphin/mode/"
-# read.nums = "~/work/dolphin/counts.csv"
-
 num.reads = read.csv(read.nums, header=FALSE)
 colnames(num.reads) = c('file', 'num')
 files = list.files(path = mode.dir, recursive = T, full.names = T)
@@ -87,14 +84,13 @@ for (path in files) {
 avg.df = norm.df[0,]
 for (c in colnames(norm.df)) {
   for (r in rownames(norm.df)) {
-    # log of a number < 1 is negative, so need to mult/div by 100 (percentage)
-    avg.df[r, c] = log(mean(c(norm.df[r,c], norm.df[c,r])) * 100) / 100
+    avg.df[r, c] = mean(c(norm.df[r,c], norm.df[c,r]))
   }
 }
 
 write.table(df, file = file.path(out.dir, "matrix_raw.tab"))
 write.table(norm.df, file = file.path(out.dir, "matrix_norm.tab"))
-write.table(avg.df, file = file.path(out.dir, "matrix_norm_log_avg.tab"))
+write.table(avg.df, file = file.path(out.dir, "matrix_norm_avg.tab"))
 write.table(1 - avg.df, file = file.path(out.dir, "matrix_dist.tab"))
 
 printf("Done, wrote raw/norm files to out_dir '%s'\n", out.dir)
