@@ -206,8 +206,8 @@ def count_kept_reads(keep_dir, out_dir):
     return base_mode_dir
 
 # --------------------------------------------------
-def make_matrix(input_files, mode_dir, out_dir):
-    """Find all the mode files, create matrix output into "figures" dir"""
+def get_input_file_counts(input_files, out_dir):
+    """Count how many sequences were used in the input files"""
     counts_dir = os.path.join(out_dir, 'counts')
     if not os.path.isdir(counts_dir):
         os.makedirs(counts_dir)
@@ -231,9 +231,11 @@ def make_matrix(input_files, mode_dir, out_dir):
             die('Cannot have zero-count for input "{}"'.format(basename))
         input_counts[basename] = num_seqs
 
-    figs_dir = os.path.join(out_dir, 'figures')
-    if not os.path.isdir(figs_dir):
-        os.makedirs(figs_dir)
+    return input_counts
+
+# --------------------------------------------------
+def matrix_from_mode(mode_dir):
+    """Read all the files in "mode" dir and create count matrix"""
 
     mode_files = list(filter(os.path.isfile,
                              glob.iglob(mode_dir + '/**', recursive=True)))
@@ -248,24 +250,32 @@ def make_matrix(input_files, mode_dir, out_dir):
             counts[index_name] = {}
         counts[index_name][qry_name] = int(num)
 
+    return counts
+
+# --------------------------------------------------
+def make_matrix(input_files, mode_dir, out_dir):
+    """Find all the mode files, create matrix output into "figures" dir"""
+    figs_dir = os.path.join(out_dir, 'figures')
+    if not os.path.isdir(figs_dir):
+        os.makedirs(figs_dir)
+
+    input_counts = get_input_file_counts(input_files, out_dir)
+    counts = matrix_from_mode(mode_dir)
+
     all_keys = set(counts.keys())
     for key in all_keys:
         map(all_keys.add, counts[key].keys())
 
     all_samples = sorted(all_keys)
 
-    raw_file = os.path.join(figs_dir, 'matrix_raw.txt')
-    raw_fh = open(raw_file, 'wt')
+    raw_fh = open(os.path.join(figs_dir, 'matrix_raw.txt'), 'wt')
+    norm_fh = open(os.path.join(figs_dir, 'matrix_norm.txt'), 'wt')
+    norm_avg_fh = open(os.path.join(figs_dir, 'matrix_norm_avg.txt'), 'wt')
 
-    norm_file = os.path.join(figs_dir, 'matrix_norm.txt')
-    norm_fh = open(norm_file, 'wt')
-
-    norm_avg_file = os.path.join(figs_dir, 'matrix_norm_avg.txt')
-    norm_avg_fh = open(norm_avg_file, 'wt')
-
-    raw_fh.write('\t'.join([''] + all_samples) + '\n')
-    norm_fh.write('\t'.join([''] + all_samples) + '\n')
-    norm_avg_fh.write('\t'.join([''] + all_samples) + '\n')
+    hdr = '\t'.join([''] + all_samples) + '\n'
+    raw_fh.write(hdr)
+    norm_fh.write(hdr)
+    norm_avg_fh.write(hdr)
 
     for qry_name in all_samples:
         raw = [qry_name]
