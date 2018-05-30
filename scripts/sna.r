@@ -136,12 +136,12 @@ print(xtable(table1), type = "latex", file = "table1.tex")
 #
 # examine marginal mixing
 #
-par(mfrow = c(3,4))
-pdf(file.path(out.dir, "marginal-mixing.pdf"), width = 6, height = 6)
-for (i in 3:dim(OUT)[2]) {
-  plot(OUT[,i],type = "l")
-}
-dev.off()
+#par(mfrow = c(3,4))
+#pdf(file.path(out.dir, "marginal-mixing.pdf"), width = 6, height = 6)
+#for (i in 3:dim(OUT)[2]) {
+#  plot(OUT[,i],type = "l")
+#}
+#dev.off()
 
 # posterior samples, dropping
 # the first half of the chain
@@ -161,12 +161,12 @@ print(M.SD.Q)
 #
 # plots of posterior densities
 #
-pdf(file.path(out.dir, "posterior-densities.pdf"), width = 6, height = 6)
-par(mfrow = c(3,4))
-for (i in 1:dim(PS)[2]) {
-  plot(density(PS[,i]),main = colnames(PS)[i])
-}
-dev.off()
+#pdf(file.path(out.dir, "posterior-densities.pdf"), width = 6, height = 6)
+#par(mfrow = c(3,4))
+#for (i in 1:dim(PS)[2]) {
+#  plot(density(PS[,i]),main = colnames(PS)[i])
+#}
+#dev.off()
 
 #
 # analysis of latent positions
