@@ -1,51 +1,47 @@
-FROM ubuntu:latest
+FROM python:latest
 
 LABEL Description="Run Fizkin"
 
-ENV LD_LIBRARY_PATH=/usr/local/lib
+WORKDIR /app
 
-WORKDIR /app/fizkin/scripts
+RUN git clone https://github.com/hurwitzlab/fizkin.git fizkin
+RUN python -m pip install -r /app/fizkin/scripts/requirements.txt
+
+#ENV LD_LIBRARY_PATH=/usr/local/lib
+
+#WORKDIR /app/fizkin/scripts
 
 #RUN jellyfish
 
-RUN apt-get update 
-RUN apt-get install -y locales git build-essential autoconf libtool \
-    pkg-config yaggo wget graphviz curl libcurl4-openssl-dev \
-    python3 python3-pip libssl-dev parallel
+#RUN apt-get update \
+#    && apt-get install -y locales git build-essential autoconf libtool \
+#       pkg-config yaggo wget graphviz curl libcurl4-openssl-dev \
+#       python3 python3-pip libssl-dev parallel \
+#    && locale-gen en_US.UTF-8 \
+#    && mkdir /root/.parallel \
+#    && touch /root/.parallel/will-cite \
+#    && mkdir -p /app \
+#    && cd /app \
+#    && wget https://github.com/gmarcais/Jellyfish/releases/download/v2.2.10/jellyfish-2.2.10.tar.gz \
+#    && tar xvf jellyfish-2.2.10.tar.gz \
+#    && cd jellyfish-2.2.10 \
+#    && ./configure && make install \
+#    && cd /app \
+#    && git clone https://github.com/hurwitzlab/Jellyfish.git jellyfish \
+#    && cd jellyfish/examples/query_per_sequence_mode \
+#    && make \
+#    && cp query_per_sequence /usr/local/bin
+#
+#RUN cd /app \
+#    && git clone https://github.com/hurwitzlab/fizkin.git fizkin \
+#    && python3 -m pip install -r /app/fizkin/scripts/requirements.txt
 
-RUN locale-gen en_US.UTF-8
+#ENTRYPOINT /app/fizkin/scripts/fizkin.py
 
-#    mkdir /root/.parallel
-#    touch /root/.parallel/will-cite
-#
-#    #
-#    # Put everything into $APP_DIR
-#    #
-#    export APP_DIR=/app
-#    mkdir -p $APP_DIR
-#    cd $APP_DIR
-#
-#    #
-#    # Install Jellyfish 
-#    #
-#    cd $APP_DIR
-#    wget https://github.com/gmarcais/Jellyfish/releases/download/v2.2.7/jellyfish-2.2.7.tar.gz
-#    tar xvf jellyfish-2.2.7.tar.gz
-#    cd jellyfish-2.2.7
-#    ./configure && make install
-#
-#    cd $APP_DIR
-#    git clone https://github.com/hurwitzlab/Jellyfish.git jellyfish
-#    cd jellyfish/examples/query_per_sequence_mode
-#    make
-#    cp query_per_sequence /usr/local/bin
-#
 #    #
 #    # Clone Fizkin 
 #    #
 #    cd $APP_DIR
-#    git clone https://github.com/hurwitzlab/fizkin.git fizkin
-#    python3 -m pip install -r /app/fizkin/scripts/requirements.txt
 #
 #    #
 #    # Add CRAN to sources to get latest R
