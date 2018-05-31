@@ -308,9 +308,13 @@ def make_figures(figures_dir):
     if not os.path.isfile(matrix):
         die('Failed to create "{}"'.format(matrix))
 
-    warn('Making figures')
     curdir = os.path.dirname(os.path.realpath(__file__))
+
+    warn('Making figures')
     subprocess.run('{}/make_figures.r -m {}'.format(curdir, matrix), shell=True)
+
+    warn('Running GBME')
+    subprocess.run('{}/sna.r -m {}'.format(curdir, matrix), shell=True)
 
     return True
 # --------------------------------------------------
@@ -332,7 +336,7 @@ def subset_input(input_files, out_dir, max_seqs):
             if not os.path.isfile(out_file):
                 jobfile.write(tmpl.format(out_file, max_seqs, input_file))
 
-        if not run_job_file(jobfile.name):
+        if not run_job_file(jobfile.name, msg='Subsetting input files'):
             die()
     else:
         warn('No max_seqs, using input files as-is')

@@ -1,5 +1,5 @@
 SINGULARITY = /usr/local/bin/singularity
-IMG_NAME = fizkin.img
+IMG_NAME = fizkin-0.0.4.img
 DEF_NAME = image.def
 SIZE = 2048
 
@@ -10,6 +10,7 @@ clean:
 	rm -f $(IMG_NAME)
 
 img: clean
+	#sudo $(SINGULARITY) build $(IMG_NAME) $(DEF_NAME)
 	sudo $(SINGULARITY) create --size $(SIZE) $(IMG_NAME)
 	sudo $(SINGULARITY) bootstrap $(IMG_NAME) $(DEF_NAME)
 

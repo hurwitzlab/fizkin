@@ -61,6 +61,7 @@ if (sort.names) {
 #
 # Dendrogram
 #
+print("Making dendrogram")
 dist.matrix = as.dist(1 - df)
 fit = hclust(dist.matrix, method = "ward.D2")
 dg = ggdendro::ggdendrogram(fit, rotate=T) + ggtitle("Dendrogram")
@@ -71,6 +72,7 @@ if (num.samples > 25) {
   img.height = num.samples * .25
 }
 
+options(bitmapType='cairo')
 ggsave(file = file.path(out.dir, "dendrogram.png"),
        limitsize = FALSE, width = 5, height = img.height, plot = dg)
 

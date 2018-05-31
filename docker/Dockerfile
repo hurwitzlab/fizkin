@@ -1,0 +1,76 @@
+FROM ubuntu:latest
+
+LABEL Description="Run Fizkin"
+
+ENV LD_LIBRARY_PATH=/usr/local/lib
+
+WORKDIR /app/fizkin/scripts
+
+#RUN jellyfish
+
+RUN apt-get update 
+RUN apt-get install -y locales git build-essential autoconf libtool \
+    pkg-config yaggo wget graphviz curl libcurl4-openssl-dev \
+    python3 python3-pip libssl-dev parallel
+
+RUN locale-gen en_US.UTF-8
+
+#    mkdir /root/.parallel
+#    touch /root/.parallel/will-cite
+#
+#    #
+#    # Put everything into $APP_DIR
+#    #
+#    export APP_DIR=/app
+#    mkdir -p $APP_DIR
+#    cd $APP_DIR
+#
+#    #
+#    # Install Jellyfish 
+#    #
+#    cd $APP_DIR
+#    wget https://github.com/gmarcais/Jellyfish/releases/download/v2.2.7/jellyfish-2.2.7.tar.gz
+#    tar xvf jellyfish-2.2.7.tar.gz
+#    cd jellyfish-2.2.7
+#    ./configure && make install
+#
+#    cd $APP_DIR
+#    git clone https://github.com/hurwitzlab/Jellyfish.git jellyfish
+#    cd jellyfish/examples/query_per_sequence_mode
+#    make
+#    cp query_per_sequence /usr/local/bin
+#
+#    #
+#    # Clone Fizkin 
+#    #
+#    cd $APP_DIR
+#    git clone https://github.com/hurwitzlab/fizkin.git fizkin
+#    python3 -m pip install -r /app/fizkin/scripts/requirements.txt
+#
+#    #
+#    # Add CRAN to sources to get latest R
+#    #
+#    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
+#    apt-get install -y r-base r-base-dev
+# 
+#    #
+#    # CPAN installs want to use "/bin/make"
+#    #
+#    ln -s /usr/bin/make /bin/make
+#
+#    #
+#    # Install R modules (need the .Rprofile to indicate CRAN mirror)
+#    #
+#    cat << EOF > .Rprofile
+#local({
+#  r = getOption("repos")
+#  r["CRAN"] = "http://mirrors.nics.utk.edu/cran/"
+#  options(repos = r)
+#})
+#EOF
+#    Rscript /app/fizkin/scripts/install.r
+#  
+#    # Mount points for TACC directories
+#    mkdir /home1
+#    mkdir /scratch
+#    mkdir /work
