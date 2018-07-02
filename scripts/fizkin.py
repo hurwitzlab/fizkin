@@ -83,7 +83,7 @@ def die(msg='Something went wrong'):
 def run_job_file(jobfile, msg='Running job', num_concurrent=4):
     """Run a job file if there are jobs"""
     num_jobs = line_count(jobfile)
-    warn('{} (# jobs = {})'.format(msg, num_jobs))
+    warn('{} (# jobs = {} @ {})'.format(msg, num_jobs, num_concurrent))
 
     if num_jobs > 0:
         cmd = 'parallel -j {} --halt soon,fail=1 < {}'.format(num_concurrent,
