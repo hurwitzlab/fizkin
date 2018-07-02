@@ -80,15 +80,20 @@ def die(msg='Something went wrong'):
     sys.exit(1)
 
 # --------------------------------------------------
-def run_job_file(jobfile, msg='Running job'):
+def run_job_file(jobfile, msg='Running job', num_concurrent=4):
     """Run a job file if there are jobs"""
     num_jobs = line_count(jobfile)
     warn('{} (# jobs = {})'.format(msg, num_jobs))
 
     if num_jobs > 0:
-        subprocess.run('parallel < ' + jobfile, shell=True)
-
-    os.remove(jobfile)
+        cmd = 'parallel -j {} --halt soon,fail=1 < {}'.format(num_concurrent,
+                                                              jobfile)
+        try:
+            subprocess.run(cmd, shell=True, check=True)
+        except subprocess.CalledProcessError as err:
+            die('Error:\n{}\n{}\n'.format(err.stderr, err.stdout))
+        finally:
+            os.remove(jobfile)
 
     return True
 
@@ -127,8 +132,9 @@ def jellyfish_count(files, out_dir, kmer_size, hash_size, num_threads):
 
     jobfile.close()
 
-    if not run_job_file(jobfile=jobfile.name, msg='Counting kmers'):
-        die()
+    run_job_file(jobfile=jobfile.name,
+                 msg='Counting kmers',
+                 num_concurrent=8)
 
     return jf_dir
 
@@ -173,8 +179,8 @@ def pairwise_compare(input_files, jf_dir, out_dir):
 
     jobfile.close()
 
-    if not run_job_file(jobfile=jobfile.name, msg='Pairwise comparison'):
-        die()
+    run_job_file(jobfile=jobfile.name,
+                 msg='Pairwise comparison')
 
     return keep_dir
 
@@ -200,8 +206,9 @@ def count_kept_reads(keep_dir, out_dir):
 
     jobfile.close()
 
-    if not run_job_file(jobfile=jobfile.name, msg='Counting taken seqs'):
-        die()
+    run_job_file(jobfile=jobfile.name,
+                 msg='Counting taken seqs',
+                 num_concurrent=16)
 
     return base_mode_dir
 
@@ -220,8 +227,9 @@ def get_input_file_counts(input_files, out_dir):
                                                            out_file))
     jobfile.close()
 
-    if not run_job_file(jobfile=jobfile.name, msg='Counting input seqs'):
-        die()
+    run_job_file(jobfile=jobfile.name,
+                 msg='Counting input seqs',
+                 num_concurrent=16)
 
     input_counts = {}
     for count_file in os.scandir(counts_dir):
@@ -336,8 +344,9 @@ def subset_input(input_files, out_dir, max_seqs):
             if not os.path.isfile(out_file):
                 jobfile.write(tmpl.format(out_file, max_seqs, input_file))
 
-        if not run_job_file(jobfile.name, msg='Subsetting input files'):
-            die()
+        run_job_file(jobfile.name,
+                     msg='Subsetting input files',
+                     num_concurrent=16)
     else:
         warn('No max_seqs, using input files as-is')
         subset_files = input_files

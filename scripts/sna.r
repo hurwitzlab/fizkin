@@ -4,12 +4,12 @@
 # Runs the social network analysis using Peter Hoff's GBME
 #
 suppressMessages(library("hash"))
-suppressMessages(library("igraph"))
+#suppressMessages(library("igraph"))
 suppressMessages(library("networkD3"))
 suppressMessages(library("optparse"))
 suppressMessages(library("R.utils"))
 suppressMessages(library("vegan"))
-suppressMessages(library("xtable"))
+#suppressMessages(library("xtable"))
 
 cargs = commandArgs(trailingOnly = FALSE)
 source_dir = dirname(sub("^--file=", "", cargs[grep("^--file=", cargs)]))
@@ -130,8 +130,8 @@ x.names = c("", "", "", "intercept")
 OUT = read.table(GBME_OUT, header = T)
 full.model = t(apply(OUT, 2, quantile, c(0.5, 0.025, 0.975)))
 rownames(full.model)[1:4] = x.names
-table1 = xtable(full.model[1:4,], align = "c|c||cc")
-print(xtable(table1), type = "latex", file = "table1.tex")
+#table1 = xtable(full.model[1:4,], align = "c|c||cc")
+#print(xtable(table1), type = "latex", file = "table1.tex")
 
 #
 # examine marginal mixing
