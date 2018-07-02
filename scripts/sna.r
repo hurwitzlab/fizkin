@@ -39,7 +39,7 @@ option_list = list(
   ),
   make_option(
     c("-n", "--number"),
-    default = as.integer(50000),
+    default = as.integer(20000),
     type = "integer",
     help = "Number of GBME iterations",
     metavar = "integer"
