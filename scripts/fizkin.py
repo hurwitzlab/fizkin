@@ -337,12 +337,22 @@ def subset_input(input_files, out_dir, max_seqs):
             os.makedirs(subset_dir)
 
         jobfile = tmp.NamedTemporaryFile(delete=False, mode='wt')
-        tmpl = 'fa_subset.py -o {} -n {} {}\n'
+        curdir = os.path.dirname(os.path.realpath(__file__))
+        prg = os.path.join(curdir, 'fa_subset.py')
+        tmpl = '{} -o {} -n {} {}\n'
+
         for input_file in input_files:
             out_file = os.path.join(subset_dir, os.path.basename(input_file))
             subset_files.append(out_file)
-            if not os.path.isfile(out_file):
-                jobfile.write(tmpl.format(out_file, max_seqs, input_file))
+            if os.path.isfile(out_file) and os.path.getsize(out_file) > 0:
+                warn('"{}" exists, skipping'.format(out_file))
+            else:
+                jobfile.write(tmpl.format(prg,
+                                          subset_dir,
+                                          max_seqs,
+                                          input_file))
+
+        jobfile.close()
 
         run_job_file(jobfile.name,
                      msg='Subsetting input files',
@@ -357,7 +367,7 @@ def subset_input(input_files, out_dir, max_seqs):
 def main():
     """main"""
     args = get_args()
-    out_dir = args.outdir
+    out_dir = os.path.abspath(args.outdir)
 
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
@@ -375,6 +385,8 @@ def main():
                                 out_dir=out_dir,
                                 max_seqs=args.max_seqs)
 
+    if not subset_files:
+        die('Something bad happened while subsetting files')
 
     jf_dir = jellyfish_count(files=subset_files,
                              out_dir=out_dir,
