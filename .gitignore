@@ -3,3 +3,6 @@
 *.Rout
 *.img
 .DS_Store
+.Rhistory
+__pycache__
+fizkin-out
