@@ -3,3 +3,4 @@
 *.Rout
 *.img
 .DS_Store
+.Rprofile
